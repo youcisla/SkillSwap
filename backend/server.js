@@ -25,19 +25,54 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/skills
 // Global connection state
 let isConnected = false;
 
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-})
-.then(() => {
-  console.log('✅ Connected to MongoDB successfully');
+console.log('🔗 Connecting to MongoDB...');
+console.log('📍 Database URI:', MONGODB_URI.replace(/:[^:@]*@/, ':****@')); // Hide password in logs
+
+// Ensure we wait for connection before starting server
+async function connectToDatabase() {
+  try {
+    await mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 10000, // Timeout after 10s
+      connectTimeoutMS: 10000,
+      maxPoolSize: 10,
+    });
+    
+    console.log('✅ Connected to MongoDB successfully');
+    console.log('📊 Database name:', mongoose.connection.db.databaseName);
+    isConnected = true;
+    
+    // List collections to verify database setup
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    console.log('📁 Available collections:', collections.map(c => c.name));
+    if (collections.length === 0) {
+      console.log('💡 No collections found - they will be created automatically when data is inserted');
+    }
+    
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error.message);
+    console.log('🔧 Please check:');
+    console.log('   1. Internet connection');
+    console.log('   2. MongoDB Atlas credentials');
+    console.log('   3. Database whitelist settings');
+    console.log('   4. Network firewall settings');
+    isConnected = false;
+    throw error;
+  }
+}
+
+// Connection event handlers
+mongoose.connection.on('connected', () => {
+  console.log('🔗 Mongoose connected to MongoDB');
   isConnected = true;
-})
-.catch((error) => {
-  console.error('❌ MongoDB connection error:', error.message);
-  console.log('🔧 Please ensure MongoDB is running or update MONGODB_URI in .env file');
-  console.log('💡 For development, you can use MongoDB Atlas (cloud) or install MongoDB locally');
+});
+
+mongoose.connection.on('error', (error) => {
+  console.error('❌ Mongoose connection error:', error);
+  isConnected = false;
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('🔌 Mongoose disconnected from MongoDB');
   isConnected = false;
 });
 
@@ -105,6 +140,22 @@ app.use('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+
+// Start server after database connection
+async function startServer() {
+  try {
+    await connectToDatabase();
+    
+    server.listen(PORT, () => {
+      console.log(`✅ Server running on port ${PORT}`);
+      console.log(`🌐 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth/`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error.message);
+    console.log('🔄 Retrying in 5 seconds...');
+    setTimeout(startServer, 5000);
+  }
+}
+
+startServer();

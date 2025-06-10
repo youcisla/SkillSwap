@@ -24,8 +24,15 @@ router.post('/register', [
   body('city').notEmpty().withMessage('City is required')
 ], async (req, res) => {
   try {
+    console.log('📝 Registration attempt:', { 
+      name: req.body.name, 
+      email: req.body.email, 
+      city: req.body.city 
+    });
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('❌ Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         error: errors.array()[0].msg
@@ -35,8 +42,10 @@ router.post('/register', [
     const { name, email, password, city } = req.body;
 
     // Check if user already exists
+    console.log('🔍 Checking if user exists with email:', email);
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      console.log('⚠️  User already exists');
       return res.status(400).json({
         success: false,
         error: 'User already exists with this email'
@@ -44,8 +53,10 @@ router.post('/register', [
     }
 
     // Create new user
+    console.log('👤 Creating new user...');
     const user = new User({ name, email, password, city });
     await user.save();
+    console.log('✅ User created successfully:', user._id);
 
     // Generate JWT token
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
@@ -58,10 +69,15 @@ router.post('/register', [
       }
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('❌ Registration error:', error);
+    console.error('📊 Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
-      error: 'Registration failed'
+      error: 'Registration failed: ' + error.message
     });
   }
 });
@@ -126,7 +142,9 @@ router.post('/login', [
 // Get current user (requires authentication)
 router.get('/me', async (req, res) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const authHeader = req.header('Authorization') || req.headers.authorization;
+    const token = authHeader?.replace('Bearer ', '');
+    
     if (!token) {
       return res.status(401).json({
         success: false,

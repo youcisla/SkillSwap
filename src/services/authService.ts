@@ -10,10 +10,29 @@ class AuthService {
         credentials
       );
       
+      console.log('🔍 Login response:', response);
+      console.log('🔍 User data:', response.data?.user);
+      
       if (response.success && response.data) {
+        // Check if user has id field, if not use _id
+        const userId = response.data.user.id || (response.data.user as any)._id;
+        console.log('💾 Storing userId:', userId);
+        
         // Store token in AsyncStorage
         await AsyncStorage.setItem('authToken', response.data.token);
-        await AsyncStorage.setItem('userId', response.data.user.id);
+        await AsyncStorage.setItem('userId', userId);
+        
+        // Ensure user object has id field for frontend
+        if (!response.data.user.id && (response.data.user as any)._id) {
+          response.data.user.id = (response.data.user as any)._id;
+        }
+        
+        console.log('✅ Login data stored successfully:', {
+          token: response.data.token ? 'present' : 'missing',
+          userId: userId,
+          userName: response.data.user.name
+        });
+        
         return response.data;
       }
       

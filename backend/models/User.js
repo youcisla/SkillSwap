@@ -101,6 +101,12 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 userSchema.methods.toJSON = function() {
   const user = this.toObject();
   delete user.password;
+  
+  // Transform _id to id for frontend compatibility
+  user.id = user._id;
+  delete user._id;
+  delete user.__v;
+  
   return user;
 };
 
