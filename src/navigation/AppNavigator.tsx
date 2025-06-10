@@ -20,7 +20,7 @@ const AppNavigator: React.FC = () => {
     // Allow some time for the auth check to complete
     const timer = setTimeout(() => {
       setIsInitializing(false);
-    }, 2000);
+    }, 1000); // Reduced from 2000 to 1000ms
 
     return () => clearTimeout(timer);
   }, []);

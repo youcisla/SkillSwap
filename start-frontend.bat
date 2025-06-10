@@ -7,6 +7,6 @@ echo Press Ctrl+C to stop the server
 echo.
 
 cd /d "%~dp0"
-npm start --clear
+npx expo start --web --clear
 
 pause
