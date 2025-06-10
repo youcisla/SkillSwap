@@ -5,16 +5,32 @@ const getApiBaseUrl = () => {
   if (__DEV__) {
     // Development mode - check platform
     const Platform = require('react-native').Platform;
+    const Constants = require('expo-constants').default;
+    
+    // Get your computer's IP address from environment or use default
+    const DEVELOPMENT_IP = '192.168.1.93'; // Your WiFi IP address
     
     if (Platform.OS === 'web') {
       return 'http://localhost:3000/api';  // Web/Browser
     } else if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:3000/api';   // Android Emulator
+      // Check if running on emulator or physical device
+      const isEmulator = Constants.isDevice === false;
+      if (isEmulator) {
+        return 'http://10.0.2.2:3000/api';   // Android Emulator
+      } else {
+        return `http://${DEVELOPMENT_IP}:3000/api`; // Android Physical Device
+      }
     } else if (Platform.OS === 'ios') {
-      return 'http://localhost:3000/api';   // iOS Simulator
+      // Check if running on simulator or physical device
+      const isSimulator = Constants.isDevice === false;
+      if (isSimulator) {
+        return 'http://localhost:3000/api';   // iOS Simulator
+      } else {
+        return `http://${DEVELOPMENT_IP}:3000/api`; // iOS Physical Device
+      }
     } else {
-      // Physical device - Updated with your actual IP
-      return 'http://192.168.1.93:3000/api'; // Your computer's IP address
+      // Fallback for other platforms
+      return `http://${DEVELOPMENT_IP}:3000/api`;
     }
   } else {
     // Production
@@ -40,6 +56,7 @@ export class ApiService {
 
   static async get<T>(endpoint: string): Promise<T> {
     try {
+      console.log(`🌐 API GET: ${API_BASE_URL}${endpoint}`);
       const headers = await this.getAuthHeaders();
       
       // Add timeout to prevent hanging
@@ -55,18 +72,33 @@ export class ApiService {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        console.error(`❌ API GET Error: ${response.status} ${response.statusText}`);
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log(`✅ API GET Success: ${endpoint}`);
       return data;
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        console.error('API request timed out:', endpoint);
-        throw new Error('Request timed out. Please check your connection.');
+        console.error('❌ API GET Timeout:', endpoint);
+        throw new Error('Request timeout - please check your network connection');
       }
-      console.error('API GET Error:', error);
+      
+      console.error('❌ API GET Error:', {
+        endpoint,
+        url: `${API_BASE_URL}${endpoint}`,
+        error: error.message,
+        stack: error.stack
+      });
+      
+      // Provide more specific error messages
+      if (error.message.includes('Network request failed') || 
+          error.message.includes('fetch')) {
+        throw new Error('Network error - please check your internet connection and server status');
+      }
+      
       throw error;
     }
   }
