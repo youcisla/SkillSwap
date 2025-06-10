@@ -60,7 +60,7 @@ SkillSwap is a mobile application that connects people who want to exchange skil
 ### 1. Clone the Repository
 ```bash
 git clone <your-repo-url>
-cd ProjetRN
+cd SkillSwap
 ```
 
 ### 2. Install Dependencies
@@ -134,7 +134,7 @@ make build             # Build for production
 ## 🏗 Project Structure
 
 ```
-ProjetRN/
+SkillSwap/
 ├── src/                          # Frontend source code
 │   ├── components/               # Reusable UI components
 │   │   ├── UserCard.tsx         # User profile card
