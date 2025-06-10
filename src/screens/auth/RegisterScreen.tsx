@@ -1,20 +1,20 @@
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    Button,
-    Card,
-    Paragraph,
-    Snackbar,
-    Text,
-    TextInput,
-    Title,
+  Button,
+  Card,
+  Paragraph,
+  Snackbar,
+  Text,
+  TextInput,
+  Title,
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { register } from '../../store/slices/authSlice';
@@ -171,85 +171,6 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 style={styles.button}
               >
                 Create Account
-              </Button>
-
-              <View style={styles.footer}>
-                <Text>Already have an account? </Text>
-                <Button
-                  mode="text"
-                  onPress={() => navigation.navigate('Login')}
-                  compact
-                >
-                  Sign In
-                </Button>
-              </View>
-                Create an account to start sharing skills
-              </Paragraph>
-
-              <TextInput
-                label="Full Name"
-                value={form.name}
-                onChangeText={(text) => handleInputChange('name', text)}
-                mode="outlined"
-                style={styles.input}
-              />
-
-              <TextInput
-                label="Email"
-                value={form.email}
-                onChangeText={(text) => handleInputChange('email', text)}
-                mode="outlined"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                style={styles.input}
-              />
-
-              <TextInput
-                label="City"
-                value={form.city}
-                onChangeText={(text) => handleInputChange('city', text)}
-                mode="outlined"
-                style={styles.input}
-              />
-
-              <TextInput
-                label="Password"
-                value={form.password}
-                onChangeText={(text) => handleInputChange('password', text)}
-                mode="outlined"
-                secureTextEntry={!showPassword}
-                right={
-                  <TextInput.Icon
-                    icon={showPassword ? 'eye-off' : 'eye'}
-                    onPress={() => setShowPassword(!showPassword)}
-                  />
-                }
-                style={styles.input}
-              />
-
-              <TextInput
-                label="Confirm Password"
-                value={form.confirmPassword}
-                onChangeText={(text) => handleInputChange('confirmPassword', text)}
-                mode="outlined"
-                secureTextEntry={!showConfirmPassword}
-                right={
-                  <TextInput.Icon
-                    icon={showConfirmPassword ? 'eye-off' : 'eye'}
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  />
-                }
-                style={styles.input}
-              />
-
-              <Button
-                mode="contained"
-                onPress={handleRegister}
-                loading={loading}
-                disabled={!isFormValid || loading}
-                style={styles.button}
-              >
-                Sign Up
               </Button>
 
               <View style={styles.footer}>
