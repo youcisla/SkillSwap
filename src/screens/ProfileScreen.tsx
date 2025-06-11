@@ -1,5 +1,4 @@
-import { RouteProp } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect } from 'react';
 import {
     Alert,
@@ -22,24 +21,23 @@ import { useAppDispatch, useAppSelector } from '../store';
 import { logout } from '../store/slices/authSlice';
 import { fetchUserSkills } from '../store/slices/skillSlice';
 import { fetchUserProfile } from '../store/slices/userSlice';
-import { RootStackParamList } from '../types';
 
-type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Profile'>;
-type ProfileScreenRouteProp = RouteProp<RootStackParamList, 'Profile'>;
-
-interface Props {
-  navigation: ProfileScreenNavigationProp;
-  route: ProfileScreenRouteProp;
+// Generic props interface for ProfileScreen that can work with any stack
+interface ProfileParams {
+  userId?: string;
 }
 
-const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
+const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation();
+  const route = useRoute();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { currentUser, users, loading } = useAppSelector((state) => state.user);
   const { skills } = useAppSelector((state) => state.skills);
 
-  const userId = route.params?.userId || user?.id;
-  const isOwnProfile = !route.params?.userId || route.params?.userId === user?.id;
+  const params = route.params as ProfileParams;
+  const userId = params?.userId || user?.id;
+  const isOwnProfile = !params?.userId || params?.userId === user?.id;
   
   const profileUser = isOwnProfile ? currentUser : users.find(u => u.id === userId);
   const userSkills = skills.filter(skill => skill.userId === userId);
@@ -72,7 +70,8 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleStartChat = () => {
     if (userId && userId !== user?.id) {
-      navigation.navigate('Chat', { 
+      // Type assertion to handle different stack types
+      (navigation as any).navigate('Chat', { 
         chatId: `${user?.id}-${userId}`, 
         otherUserId: userId 
       });
@@ -109,7 +108,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             {isOwnProfile ? (
               <IconButton
                 icon="pencil"
-                onPress={() => navigation.navigate('EditProfile')}
+                onPress={() => (navigation as any).navigate('EditProfile')}
               />
             ) : (
               <IconButton
@@ -135,7 +134,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             {isOwnProfile && (
               <IconButton
                 icon="plus"
-                onPress={() => navigation.navigate('AddSkill', { type: 'teach' })}
+                onPress={() => (navigation as any).navigate('AddSkill', { type: 'teach' })}
               />
             )}
           </View>
@@ -162,7 +161,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             {isOwnProfile && (
               <IconButton
                 icon="plus"
-                onPress={() => navigation.navigate('AddSkill', { type: 'learn' })}
+                onPress={() => (navigation as any).navigate('AddSkill', { type: 'learn' })}
               />
             )}
           </View>
@@ -188,7 +187,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             <Title>Account</Title>
             <Button
               mode="outlined"
-              onPress={() => navigation.navigate('SkillManagement')}
+              onPress={() => (navigation as any).navigate('SkillManagement')}
               style={styles.actionButton}
               icon="cog"
             >
@@ -196,7 +195,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             </Button>
             <Button
               mode="outlined"
-              onPress={() => navigation.navigate('EditProfile')}
+              onPress={() => (navigation as any).navigate('EditProfile')}
               style={styles.actionButton}
               icon="account-edit"
             >

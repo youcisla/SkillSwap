@@ -2,7 +2,14 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
-import { RootStackParamList, TabParamList } from '../types';
+import {
+  CalendarStackParamList,
+  HomeStackParamList,
+  MatchesStackParamList,
+  MessagesStackParamList,
+  ProfileStackParamList,
+  TabParamList
+} from '../types';
 
 // Import screens
 import CalendarScreen from '../screens/CalendarScreen';
@@ -18,106 +25,110 @@ import SkillManagementScreen from '../screens/skills/SkillManagementScreen';
 import UserListScreen from '../screens/UserListScreen';
 
 const Tab = createBottomTabNavigator<TabParamList>();
-const Stack = createStackNavigator<RootStackParamList>();
+const HomeStack = createStackNavigator<HomeStackParamList>();
+const MatchesStack = createStackNavigator<MatchesStackParamList>();
+const MessagesStack = createStackNavigator<MessagesStackParamList>();
+const ProfileStack = createStackNavigator<ProfileStackParamList>();
+const CalendarStack = createStackNavigator<CalendarStackParamList>();
 
-const HomeStack = () => (
-  <Stack.Navigator>
-    <Stack.Screen 
-      name="Home" 
+const HomeStackScreen = () => (
+  <HomeStack.Navigator>
+    <HomeStack.Screen 
+      name="HomeMain" 
       component={HomeScreen}
       options={{ title: 'SkillSwap' }}
     />
-    <Stack.Screen 
+    <HomeStack.Screen 
       name="UserList" 
       component={UserListScreen}
       options={{ title: 'Users' }}
     />
-    <Stack.Screen 
-      name="Profile" 
+    <HomeStack.Screen 
+      name="UserProfile" 
       component={ProfileScreen}
       options={{ title: 'Profile' }}
     />
-    <Stack.Screen 
+    <HomeStack.Screen 
       name="Chat" 
       component={ChatScreen}
       options={{ title: 'Chat' }}
     />
-  </Stack.Navigator>
+  </HomeStack.Navigator>
 );
 
-const MatchesStack = () => (
-  <Stack.Navigator>
-    <Stack.Screen 
-      name="Matches" 
+const MatchesStackScreen = () => (
+  <MatchesStack.Navigator>
+    <MatchesStack.Screen 
+      name="MatchesMain" 
       component={MatchesScreen}
       options={{ title: 'Matches' }}
     />
-    <Stack.Screen 
-      name="Profile" 
+    <MatchesStack.Screen 
+      name="MatchUserProfile" 
       component={ProfileScreen}
       options={{ title: 'Profile' }}
     />
-    <Stack.Screen 
-      name="Chat" 
+    <MatchesStack.Screen 
+      name="MatchChat" 
       component={ChatScreen}
       options={{ title: 'Chat' }}
     />
-  </Stack.Navigator>
+  </MatchesStack.Navigator>
 );
 
-const MessagesStack = () => (
-  <Stack.Navigator>
-    <Stack.Screen 
-      name="Messages" 
+const MessagesStackScreen = () => (
+  <MessagesStack.Navigator>
+    <MessagesStack.Screen 
+      name="MessagesMain" 
       component={MessagesScreen}
       options={{ title: 'Messages' }}
     />
-    <Stack.Screen 
-      name="Chat" 
+    <MessagesStack.Screen 
+      name="MessageChat" 
       component={ChatScreen}
       options={{ title: 'Chat' }}
     />
-  </Stack.Navigator>
+  </MessagesStack.Navigator>
 );
 
-const ProfileStack = () => (
-  <Stack.Navigator>
-    <Stack.Screen 
-      name="Profile" 
+const ProfileStackScreen = () => (
+  <ProfileStack.Navigator>
+    <ProfileStack.Screen 
+      name="ProfileMain" 
       component={ProfileScreen}
       options={{ title: 'Profile' }}
     />
-    <Stack.Screen 
+    <ProfileStack.Screen 
       name="EditProfile" 
       component={EditProfileScreen}
       options={{ title: 'Edit Profile' }}
     />
-    <Stack.Screen 
+    <ProfileStack.Screen 
       name="SkillManagement" 
       component={SkillManagementScreen}
       options={{ title: 'Manage Skills' }}
     />
-    <Stack.Screen 
+    <ProfileStack.Screen 
       name="AddSkill" 
       component={AddSkillScreen}
       options={{ title: 'Add Skill' }}
     />
-  </Stack.Navigator>
+  </ProfileStack.Navigator>
 );
 
-const CalendarStack = () => (
-  <Stack.Navigator>
-    <Stack.Screen 
-      name="Calendar" 
+const CalendarStackScreen = () => (
+  <CalendarStack.Navigator>
+    <CalendarStack.Screen 
+      name="CalendarMain" 
       component={CalendarScreen}
       options={{ title: 'Calendar' }}
     />
-    <Stack.Screen 
+    <CalendarStack.Screen 
       name="SessionDetails" 
       component={SessionDetailsScreen}
       options={{ title: 'Session Details' }}
     />
-  </Stack.Navigator>
+  </CalendarStack.Navigator>
 );
 
 const MainTabNavigator: React.FC = () => {
@@ -154,11 +165,11 @@ const MainTabNavigator: React.FC = () => {
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Home" component={HomeStack} />
-      <Tab.Screen name="Matches" component={MatchesStack} />
-      <Tab.Screen name="Messages" component={MessagesStack} />
-      <Tab.Screen name="Calendar" component={CalendarStack} />
-      <Tab.Screen name="Profile" component={ProfileStack} />
+      <Tab.Screen name="Home" component={HomeStackScreen} />
+      <Tab.Screen name="Matches" component={MatchesStackScreen} />
+      <Tab.Screen name="Messages" component={MessagesStackScreen} />
+      <Tab.Screen name="Calendar" component={CalendarStackScreen} />
+      <Tab.Screen name="Profile" component={ProfileStackScreen} />
     </Tab.Navigator>
   );
 };

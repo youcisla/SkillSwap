@@ -1,5 +1,4 @@
-import { RouteProp } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     FlatList,
@@ -17,23 +16,24 @@ import {
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchMessages, markAsRead, sendMessage } from '../../store/slices/messageSlice';
 import { fetchUserProfile } from '../../store/slices/userSlice';
-import { Message, RootStackParamList } from '../../types';
+import { Message } from '../../types';
 
-type ChatScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Chat'>;
-type ChatScreenRouteProp = RouteProp<RootStackParamList, 'Chat'>;
-
-interface Props {
-  navigation: ChatScreenNavigationProp;
-  route: ChatScreenRouteProp;
+// Generic params interface for ChatScreen
+interface ChatParams {
+  chatId: string;
+  otherUserId: string;
 }
 
-const ChatScreen: React.FC<Props> = ({ navigation, route }) => {
+const ChatScreen: React.FC = () => {
+  const navigation = useNavigation();
+  const route = useRoute();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { messages, loading } = useAppSelector((state) => state.messages);
   const { users } = useAppSelector((state) => state.user);
 
-  const { chatId, otherUserId } = route.params;
+  const params = route.params as ChatParams;
+  const { chatId, otherUserId } = params;
   const [messageText, setMessageText] = useState('');
   const flatListRef = useRef<FlatList>(null);
 

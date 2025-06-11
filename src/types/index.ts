@@ -118,16 +118,25 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Home: undefined;
-  Profile: { userId?: string };
+  HomeMain: undefined;
+  UserProfile: { userId?: string };
+  MatchUserProfile: { userId?: string };
+  ProfileMain: { userId?: string };
   EditProfile: undefined;
   SkillManagement: undefined;
   AddSkill: { type: 'teach' | 'learn' };
   UserList: { skillId?: string };
   Chat: { chatId: string; otherUserId: string };
+  MatchChat: { chatId: string; otherUserId: string };
+  MessageChat: { chatId: string; otherUserId: string };
   ChatList: undefined;
   SessionDetails: { sessionId: string };
   Calendar: undefined;
+  CalendarMain: undefined;
   Matches: undefined;
+  MatchesMain: undefined;
+  Messages: undefined;
+  MessagesMain: undefined;
 };
 
 export type TabParamList = {
@@ -136,6 +145,37 @@ export type TabParamList = {
   Messages: undefined;
   Profile: undefined;
   Calendar: undefined;
+};
+
+// Stack-specific param lists
+export type HomeStackParamList = {
+  HomeMain: undefined;
+  UserList: { skillId?: string };
+  UserProfile: { userId?: string };
+  Chat: { chatId: string; otherUserId: string };
+};
+
+export type MatchesStackParamList = {
+  MatchesMain: undefined;
+  MatchUserProfile: { userId?: string };
+  MatchChat: { chatId: string; otherUserId: string };
+};
+
+export type MessagesStackParamList = {
+  MessagesMain: undefined;
+  MessageChat: { chatId: string; otherUserId: string };
+};
+
+export type ProfileStackParamList = {
+  ProfileMain: { userId?: string };
+  EditProfile: undefined;
+  SkillManagement: undefined;
+  AddSkill: { type: 'teach' | 'learn' };
+};
+
+export type CalendarStackParamList = {
+  CalendarMain: undefined;
+  SessionDetails: { sessionId: string };
 };
 
 // API Response types

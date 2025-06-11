@@ -127,7 +127,7 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.matchActions}>
             <Button 
               mode="outlined" 
-              onPress={() => navigation.navigate('Profile', { userId: matchedUser.id })}
+              onPress={() => navigation.navigate('MatchUserProfile', { userId: matchedUser.id })}
               style={styles.actionButton}
             >
               View Profile
@@ -171,7 +171,7 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
       </Paragraph>
       <Button 
         mode="contained" 
-        onPress={() => navigation.navigate('Profile', { userId: undefined })}
+        onPress={() => navigation.navigate('ProfileMain', { userId: undefined })}
         style={styles.emptyButton}
       >
         Update Profile

@@ -1,3 +1,5 @@
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { CompositeNavigationProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
 import {
@@ -21,9 +23,12 @@ import { useAppDispatch, useAppSelector } from '../store';
 import { fetchMatches } from '../store/slices/matchSlice';
 import { fetchUserSkills } from '../store/slices/skillSlice';
 import { fetchUserProfile } from '../store/slices/userSlice';
-import { RootStackParamList } from '../types';
+import { HomeStackParamList, TabParamList } from '../types';
 
-type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
+type HomeScreenNavigationProp = CompositeNavigationProp<
+  StackNavigationProp<HomeStackParamList, 'HomeMain'>,
+  BottomTabNavigationProp<TabParamList>
+>;
 
 interface Props {
   navigation: HomeScreenNavigationProp;
@@ -143,7 +148,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   <Button 
                     mode="outlined" 
                     compact
-                    onPress={() => navigation.navigate('Profile', { userId: match.user1Id === user?.id ? match.user2Id : match.user1Id })}
+                    onPress={() => navigation.navigate('UserProfile', { userId: match.user1Id === user?.id ? match.user2Id : match.user1Id })}
                   >
                     View Profile
                   </Button>
@@ -229,7 +234,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       <FAB
         style={styles.fab}
         icon="plus"
-        onPress={() => navigation.navigate('UserList')}
+        onPress={() => navigation.navigate('UserList', {})}
         label="Find Users"
       />
     </View>

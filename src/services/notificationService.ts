@@ -7,6 +7,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -118,7 +120,10 @@ class NotificationService {
         'Session Reminder',
         `Your session with ${participantName} for ${skillName} starts in 1 hour!`,
         { sessionId, type: 'session-reminder' },
-        { date: reminderDate }
+        { 
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: reminderDate 
+        }
       );
 
       return notificationId;

@@ -193,4 +193,34 @@ export class ApiService {
       throw error;
     }
   }
+
+  static async uploadFile<T>(endpoint: string, formData: FormData): Promise<T> {
+    try {
+      console.log(`🌐 API UPLOAD: ${API_BASE_URL}${endpoint}`);
+      const token = await AsyncStorage.getItem('authToken');
+      
+      const headers: HeadersInit = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      // Note: Don't set Content-Type for FormData, let the browser set it with boundary
+      
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      return responseData;
+    } catch (error) {
+      console.error('API UPLOAD Error:', error);
+      throw error;
+    }
+  }
 }

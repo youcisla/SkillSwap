@@ -44,22 +44,13 @@ class UserService {
         name: 'profile.jpg',
       } as any);
 
-      const response = await fetch(`${ApiService['API_BASE_URL']}/users/${userId}/image`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          // Add auth headers
-        },
-        body: formData,
-      });
-
-      const data = await response.json();
+      const response = await ApiService.uploadFile<any>(`/users/${userId}/image`, formData);
       
-      if (data.success) {
-        return data.data.imageUrl;
+      if (response.success) {
+        return response.data.imageUrl;
       }
       
-      throw new Error(data.error || 'Failed to upload image');
+      throw new Error(response.error || 'Failed to upload image');
     } catch (error) {
       console.error('Upload profile image error:', error);
       throw error;

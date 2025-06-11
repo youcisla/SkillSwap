@@ -17,7 +17,7 @@ import {
     Title
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { RootStackParamList, Skill } from '../../types';
+import { RootStackParamList, Skill, SkillLevel } from '../../types';
 
 type SkillManagementScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SkillManagement'>;
 
@@ -36,14 +36,14 @@ const SkillManagementScreen: React.FC<Props> = ({ navigation }) => {
       id: '1',
       name: 'JavaScript',
       category: 'technology',
-      level: 'advanced',
+      level: SkillLevel.ADVANCED,
       description: 'Web development with modern frameworks',
     },
     {
       id: '2',
       name: 'Guitar',
       category: 'music',
-      level: 'intermediate',
+      level: SkillLevel.INTERMEDIATE,
       description: 'Acoustic and electric guitar',
     },
   ]);
@@ -53,14 +53,14 @@ const SkillManagementScreen: React.FC<Props> = ({ navigation }) => {
       id: '3',
       name: 'Spanish',
       category: 'languages',
-      level: 'beginner',
+      level: SkillLevel.BEGINNER,
       description: 'Conversational Spanish',
     },
     {
       id: '4',
       name: 'Photography',
       category: 'arts',
-      level: 'beginner',
+      level: SkillLevel.BEGINNER,
       description: 'Portrait and landscape photography',
     },
   ]);
