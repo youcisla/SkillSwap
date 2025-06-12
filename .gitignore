@@ -1,19 +1,42 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# Dependencies
+# ==========================================
+# DEPENDENCIES & PACKAGE MANAGERS
+# ==========================================
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+.pnpm-debug.log*
+.yarn-integrity
 
-# Expo
+# Package manager lock files (uncomment if you want to ignore them)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ==========================================
+# EXPO & REACT NATIVE
+# ==========================================
 .expo/
+.expo-shared/
 dist/
 web-build/
 expo-env.d.ts
 
-# Native
+# React Native
+android/
+ios/
+*.ipa
+*.apk
+*.aab
+
+# Metro bundler
+.metro-health-check*
+metro.config.js.bak
+
+# Native builds
 .kotlin/
 *.orig.*
 *.jks
@@ -21,11 +44,11 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+*.keystore
 
-# Metro
-.metro-health-check*
-
-# Environment variables
+# ==========================================
+# ENVIRONMENT VARIABLES
+# ==========================================
 .env
 .env.local
 .env.development.local
@@ -33,51 +56,53 @@ expo-env.d.ts
 .env.production.local
 .env*.local
 
-# Logs
-logs
+# ==========================================
+# TYPESCRIPT & BUILD OUTPUT
+# ==========================================
+*.tsbuildinfo
+build/
+dist/
+lib/
+out/
+
+# TypeScript incremental compilation
+*.tsbuildinfo
+
+# ==========================================
+# LOGS & DEBUGGING
+# ==========================================
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
-.pnpm-debug.log*
+debug.log
+error.log
 
 # Runtime data
-pids
+pids/
 *.pid
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
+# ==========================================
+# TESTING & COVERAGE
+# ==========================================
 coverage/
 *.lcov
-
-# nyc test coverage
 .nyc_output
+junit.xml
+test-results/
 
-# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
-.grunt
-
-# Bower dependency directory (https://bower.io/)
-bower_components
-
-# node-waf configuration
-.lock-wscript
-
-# Compiled binary addons (https://nodejs.org/api/addons.html)
-build/Release
-
-# Dependency directories
-jspm_packages/
-
-# TypeScript cache
-*.tsbuildinfo
-
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
+# ==========================================
+# CACHING & TEMPORARY FILES
+# ==========================================
+.cache/
+.parcel-cache/
+.npm/
 .eslintcache
+.stylelintcache
 
 # Microbundle cache
 .rpt2_cache/
@@ -88,78 +113,161 @@ jspm_packages/
 # Optional REPL history
 .node_repl_history
 
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
-
-# Next.js build output
-.next
-
-# Nuxt.js build / generate output
-.nuxt
-
-# Gatsby files
-.cache/
-public
-
-# Storybook build outputs
-.out
-.storybook-out
-
 # Temporary folders
 tmp/
 temp/
+*.tmp
 
-# Editor directories and files
+# ==========================================
+# DEVELOPMENT TOOLS
+# ==========================================
+# Grunt intermediate storage
+.grunt
+
+# Bower dependency directory
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons
+build/Release
+
+# Dependency directories
+jspm_packages/
+
+# ==========================================
+# BUNDLERS & BUILD TOOLS
+# ==========================================
+# Webpack
+.webpack/
+
+# Next.js build output
+.next/
+out/
+
+# Nuxt.js build / generate output
+.nuxt/
+
+# Gatsby files
+public/
+
+# Storybook build outputs
+.out/
+.storybook-out/
+storybook-static/
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# ==========================================
+# EDITORS & IDEs
+# ==========================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.project
+.classpath
+.settings/
 
-# OS generated files
+# ==========================================
+# OPERATING SYSTEMS
+# ==========================================
+# macOS
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
-Thumbs.db
-*.pem
+.AppleDouble
+.LSOverride
 
 # Windows
 Thumbs.db
+Thumbs.db:encryptable
 ehthumbs.db
+ehthumbs_vista.db
 Desktop.ini
 $RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
 
-# React Native
-*.ipa
-*.apk
-*.aab
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
 
+# ==========================================
+# CERTIFICATES & SECURITY
+# ==========================================
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+
+# ==========================================
+# DATABASES
+# ==========================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# MongoDB
+data/
+mongo-data/
+
+# ==========================================
+# CLOUD SERVICES
+# ==========================================
 # Firebase
 .firebase/
 firebase-debug.log
 firestore-debug.log
+ui-debug.log
 
 # Sentry
 .sentryclirc
 
-# Local database files
-*.db
-*.sqlite
-*.sqlite3
+# AWS
+.aws/
 
-# Backup files
+# ==========================================
+# PACKAGE OUTPUT
+# ==========================================
+*.tgz
+*.tar.gz
+
+# ==========================================
+# BACKUP FILES
+# ==========================================
 *.backup
 *.bak
-*.tmp
+*.old
+*.orig
 
-*.package-lock.json
+# ==========================================
+# PROJECT SPECIFIC
+# ==========================================
+# Debug files
+debug-*.js
+*-debug.*
+
+# Local configuration
+local.json
+config.local.js
+
+# Upload directories
+uploads/
+public/uploads/
