@@ -1,26 +1,39 @@
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect } from 'react';
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    Avatar,
-    Button,
-    Card,
-    Chip,
-    Divider,
-    IconButton,
-    Paragraph,
-    Text,
-    Title,
+  Avatar,
+  Button,
+  Card,
+  Chip,
+  Divider,
+  IconButton,
+  Paragraph,
+  Text,
+  Title,
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../store';
 import { logout } from '../store/slices/authSlice';
 import { fetchUserSkills } from '../store/slices/skillSlice';
 import { fetchUserProfile } from '../store/slices/userSlice';
+import { HomeStackParamList, MatchesStackParamList, ProfileStackParamList } from '../types';
+
+// Type for navigation that can work with multiple stacks
+type ProfileNavigationProp = 
+  | StackNavigationProp<HomeStackParamList, 'UserProfile'>
+  | StackNavigationProp<MatchesStackParamList, 'MatchUserProfile'>
+  | StackNavigationProp<ProfileStackParamList, 'ProfileMain'>;
+
+type ProfileRouteProp = 
+  | RouteProp<HomeStackParamList, 'UserProfile'>
+  | RouteProp<MatchesStackParamList, 'MatchUserProfile'>
+  | RouteProp<ProfileStackParamList, 'ProfileMain'>;
 
 // Generic props interface for ProfileScreen that can work with any stack
 interface ProfileParams {
@@ -28,21 +41,21 @@ interface ProfileParams {
 }
 
 const ProfileScreen: React.FC = () => {
-  const navigation = useNavigation();
-  const route = useRoute();
+  const navigation = useNavigation<ProfileNavigationProp>();
+  const route = useRoute<ProfileRouteProp>();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { currentUser, users, loading } = useAppSelector((state) => state.user);
   const { skills } = useAppSelector((state) => state.skills);
 
-  const params = route.params as ProfileParams;
+  const params = route.params as ProfileParams | undefined;
   const userId = params?.userId || user?.id;
   const isOwnProfile = !params?.userId || params?.userId === user?.id;
   
   const profileUser = isOwnProfile ? currentUser : users.find(u => u.id === userId);
   const userSkills = skills.filter(skill => skill.userId === userId);
-  const teachSkills = userSkills; // In a real app, you'd filter by type
-  const learnSkills = profileUser?.skillsToLearn || [];
+  const teachSkills = userSkills.filter(skill => skill.type === 'teach');
+  const learnSkills = userSkills.filter(skill => skill.type === 'learn');
 
   useEffect(() => {
     if (userId) {
@@ -170,7 +183,7 @@ const ProfileScreen: React.FC = () => {
             <View style={styles.chipContainer}>
               {learnSkills.map((skill) => (
                 <Chip key={skill.id} style={styles.chip}>
-                  {skill.name}
+                  {skill.name} - {skill.level}
                 </Chip>
               ))}
             </View>

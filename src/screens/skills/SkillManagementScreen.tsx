@@ -1,5 +1,6 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import React, { useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
     Alert,
     ScrollView,
@@ -17,7 +18,8 @@ import {
     Title
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { RootStackParamList, Skill, SkillLevel } from '../../types';
+import { fetchUserSkills, removeSkill } from '../../store/slices/skillSlice';
+import { RootStackParamList, Skill } from '../../types';
 
 type SkillManagementScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SkillManagement'>;
 
@@ -28,44 +30,31 @@ interface Props {
 const SkillManagementScreen: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const { skills, loading } = useAppSelector((state) => state.skills);
+  const { skills, loading } = useAppSelector((state) => state.skills);  // Fetch user skills when component mounts or when returning from other screens
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.id) {
+        console.log('🔄 Fetching user skills on focus...');
+        dispatch(fetchUserSkills(user.id));
+      }
+    }, [dispatch, user?.id])
+  );
 
-  // Mock skills data for demo
-  const [teachSkills] = useState<Skill[]>([
-    {
-      id: '1',
-      name: 'JavaScript',
-      category: 'technology',
-      level: SkillLevel.ADVANCED,
-      description: 'Web development with modern frameworks',
-    },
-    {
-      id: '2',
-      name: 'Guitar',
-      category: 'music',
-      level: SkillLevel.INTERMEDIATE,
-      description: 'Acoustic and electric guitar',
-    },
-  ]);
+  // Separate skills into teach and learn categories
+  const teachSkills = useMemo(() => {
+    console.log('🔍 All skills for filtering:', skills.map(s => ({ name: s.name, type: s.type, id: s.id })));
+    const filtered = skills.filter(skill => skill.type === 'teach');
+    console.log('📚 Teaching skills:', filtered.length, filtered.map(s => ({ name: s.name, type: s.type })));
+    return filtered;
+  }, [skills]);
+  
+  const learnSkills = useMemo(() => {
+    const filtered = skills.filter(skill => skill.type === 'learn');
+    console.log('🎯 Learning skills:', filtered.length, filtered.map(s => ({ name: s.name, type: s.type })));
+    return filtered;
+  }, [skills]);
 
-  const [learnSkills] = useState<Skill[]>([
-    {
-      id: '3',
-      name: 'Spanish',
-      category: 'languages',
-      level: SkillLevel.BEGINNER,
-      description: 'Conversational Spanish',
-    },
-    {
-      id: '4',
-      name: 'Photography',
-      category: 'arts',
-      level: SkillLevel.BEGINNER,
-      description: 'Portrait and landscape photography',
-    },
-  ]);
-
-  const handleDeleteSkill = (skillId: string, skillName: string) => {
+  const handleDeleteSkill = async (skillId: string, skillName: string) => {
     Alert.alert(
       'Delete Skill',
       `Are you sure you want to remove "${skillName}" from your skills?`,
@@ -74,9 +63,12 @@ const SkillManagementScreen: React.FC<Props> = ({ navigation }) => {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            // In a real app, dispatch delete action
-            console.log('Deleting skill:', skillId);
+          onPress: async () => {
+            try {
+              await dispatch(removeSkill(skillId)).unwrap();
+            } catch (error) {
+              console.error('Failed to delete skill:', error);
+            }
           },
         },
       ]

@@ -26,6 +26,7 @@ export interface Skill {
   description?: string;
   level: SkillLevel;
   userId?: string;
+  type: 'teach' | 'learn';
 }
 
 export enum SkillLevel {

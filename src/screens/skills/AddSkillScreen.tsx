@@ -2,19 +2,20 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    View
+  ScrollView,
+  StyleSheet,
+  View
 } from 'react-native';
 import {
-    Card,
-    Chip,
-    FAB,
-    Searchbar,
-    Text,
-    Title
+  Card,
+  Chip,
+  FAB,
+  Searchbar,
+  Text,
+  Title
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../store';
+import { addSkill } from '../../store/slices/skillSlice';
 import { RootStackParamList, SkillCategory, SkillLevel } from '../../types';
 
 type AddSkillScreenNavigationProp = StackNavigationProp<RootStackParamList, 'AddSkill'>;
@@ -56,8 +57,7 @@ const AddSkillScreen: React.FC<Props> = ({ navigation, route }) => {
     if (!selectedSkill || !user?.id) return;
 
     try {
-      // In a real app, you'd dispatch an action to add the skill
-      console.log('Adding skill:', {
+      console.log('🌟 Adding skill:', {
         userId: user.id,
         skill: {
           name: selectedSkill,
@@ -68,9 +68,22 @@ const AddSkillScreen: React.FC<Props> = ({ navigation, route }) => {
         type: skillType,
       });
       
+      // Dispatch the addSkill action
+      const result = await dispatch(addSkill({
+        userId: user.id,
+        skill: {
+          name: selectedSkill,
+          category: selectedCategory,
+          level: selectedLevel,
+          description: '',
+        },
+        type: skillType,
+      })).unwrap();
+      
+      console.log('✅ Skill added successfully:', result);
       navigation.goBack();
     } catch (error) {
-      console.error('Failed to add skill:', error);
+      console.error('❌ Failed to add skill:', error);
     }
   };
 
@@ -123,7 +136,7 @@ const AddSkillScreen: React.FC<Props> = ({ navigation, route }) => {
               <>
                 <Text style={styles.sectionTitle}>Your Level</Text>
                 <View style={styles.levelContainer}>
-                  {Object.values(SkillLevel).map((level) => (
+                  {(Object.values(SkillLevel) as SkillLevel[]).map((level) => (
                     <Chip
                       key={level}
                       selected={selectedLevel === level}

@@ -6,6 +6,64 @@ const auth = require('../middleware/auth');
 
 const router = express.Router();
 
+// Search users
+router.get('/search', auth, async (req, res) => {
+  try {
+    const { q, city, skillsToTeach, skillsToLearn } = req.query;
+    let query = { _id: { $ne: req.userId }, isActive: true };
+
+    if (q) {
+      query.$or = [
+        { name: { $regex: q, $options: 'i' } },
+        { bio: { $regex: q, $options: 'i' } }
+      ];
+    }
+
+    if (city) {
+      query.city = { $regex: city, $options: 'i' };
+    }
+
+    const users = await User.find(query)
+      .populate('skillsToTeach')
+      .populate('skillsToLearn')
+      .limit(20)
+      .select('-password');
+
+    // Filter by skills if provided
+    let filteredUsers = users;
+    if (skillsToTeach || skillsToLearn) {
+      filteredUsers = users.filter(user => {
+        if (skillsToTeach) {
+          const hasTeachSkill = user.skillsToTeach.some(skill => 
+            skillsToTeach.includes(skill.name)
+          );
+          if (!hasTeachSkill) return false;
+        }
+
+        if (skillsToLearn) {
+          const hasLearnSkill = user.skillsToLearn.some(skill => 
+            skillsToLearn.includes(skill.name)
+          );
+          if (!hasLearnSkill) return false;
+        }
+
+        return true;
+      });
+    }
+
+    res.json({
+      success: true,
+      data: filteredUsers
+    });
+  } catch (error) {
+    console.error('Search users error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Search failed'
+    });
+  }
+});
+
 // Get user profile
 router.get('/:userId', auth, async (req, res) => {
   try {
@@ -80,64 +138,6 @@ router.put('/:userId', [
     res.status(500).json({
       success: false,
       error: 'Failed to update profile'
-    });
-  }
-});
-
-// Search users
-router.get('/search', auth, async (req, res) => {
-  try {
-    const { q, city, skillsToTeach, skillsToLearn } = req.query;
-    let query = { _id: { $ne: req.userId }, isActive: true };
-
-    if (q) {
-      query.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { bio: { $regex: q, $options: 'i' } }
-      ];
-    }
-
-    if (city) {
-      query.city = { $regex: city, $options: 'i' };
-    }
-
-    const users = await User.find(query)
-      .populate('skillsToTeach')
-      .populate('skillsToLearn')
-      .limit(20)
-      .select('-password');
-
-    // Filter by skills if provided
-    let filteredUsers = users;
-    if (skillsToTeach || skillsToLearn) {
-      filteredUsers = users.filter(user => {
-        if (skillsToTeach) {
-          const hasTeachSkill = user.skillsToTeach.some(skill => 
-            skillsToTeach.includes(skill.name)
-          );
-          if (!hasTeachSkill) return false;
-        }
-
-        if (skillsToLearn) {
-          const hasLearnSkill = user.skillsToLearn.some(skill => 
-            skillsToLearn.includes(skill.name)
-          );
-          if (!hasLearnSkill) return false;
-        }
-
-        return true;
-      });
-    }
-
-    res.json({
-      success: true,
-      data: filteredUsers
-    });
-  } catch (error) {
-    console.error('Search users error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Search failed'
     });
   }
 });

@@ -3,21 +3,21 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import {
-    Avatar,
-    Button,
-    Card,
-    Snackbar,
-    Text,
-    TextInput,
-    Title,
+  Avatar,
+  Button,
+  Card,
+  Snackbar,
+  Text,
+  TextInput,
+  Title,
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { updateUserProfile } from '../../store/slices/userSlice';
@@ -69,7 +69,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaType.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,

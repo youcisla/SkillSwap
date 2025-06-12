@@ -21,12 +21,16 @@ class SkillService {
 
   async addSkill(userId: string, skillData: SkillForm, type: 'teach' | 'learn'): Promise<Skill> {
     try {
+      console.log('📤 Adding skill via service:', { userId, skillData, type });
       const response = await ApiService.post<ApiResponse<Skill>>(
         `/skills/${type}`,
         { ...skillData, userId }
       );
       
+      console.log('📥 Skill service response:', response);
+      
       if (response.success && response.data) {
+        console.log('✅ Skill added via service:', response.data);
         return response.data;
       }
       
