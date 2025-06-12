@@ -25,7 +25,7 @@ const UserCard: React.FC<UserCardProps> = ({
           <Avatar.Image
             size={60}
             source={{ 
-              uri: user.profileImage || 'https://via.placeholder.com/60/6200ea/ffffff?text=' + user.name.charAt(0)
+              uri: user.profileImage || `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60"><rect width="60" height="60" fill="#6200ea"/><text x="50%" y="50%" text-anchor="middle" dy="0.35em" fill="white" font-size="28" font-family="Arial">${user.name.charAt(0).toUpperCase()}</text></svg>`)}`
             }}
           />
           <View style={styles.userInfo}>

@@ -9,6 +9,7 @@ import {
 import {
     Avatar,
     Badge,
+    Button,
     Card,
     FAB,
     Paragraph,
@@ -17,9 +18,9 @@ import {
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../store';
 import { fetchChats } from '../store/slices/messageSlice';
-import { Chat, RootStackParamList } from '../types';
+import { Chat, MessagesStackParamList } from '../types';
 
-type MessagesScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Messages'>;
+type MessagesScreenNavigationProp = StackNavigationProp<MessagesStackParamList, 'MessagesMain'>;
 
 interface Props {
   navigation: MessagesScreenNavigationProp;
@@ -61,22 +62,6 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
     return users.find(u => u.id === otherUserId);
   };
 
-  const formatTimestamp = (timestamp: Date) => {
-    const now = new Date();
-    const messageDate = new Date(timestamp);
-    const diffInHours = (now.getTime() - messageDate.getTime()) / (1000 * 60 * 60);
-
-    if (diffInHours < 1) {
-      const diffInMinutes = Math.floor(diffInHours * 60);
-      return `${diffInMinutes}m ago`;
-    } else if (diffInHours < 24) {
-      return `${Math.floor(diffInHours)}h ago`;
-    } else {
-      const diffInDays = Math.floor(diffInHours / 24);
-      return `${diffInDays}d ago`;
-    }
-  };
-
   const filteredChats = chats.filter(chat => {
     if (!searchQuery) return true;
     
@@ -84,41 +69,57 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
     return otherParticipant?.name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  const formatTimestamp = (timestamp: Date) => {
+    const now = new Date();
+    const messageDate = new Date(timestamp);
+    const diffTime = now.getTime() - messageDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      return messageDate.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } else if (diffDays === 1) {
+      return 'Yesterday';
+    } else if (diffDays < 7) {
+      return messageDate.toLocaleDateString('en-US', { weekday: 'short' });
+    } else {
+      return messageDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+  };
+
   const renderChatItem = ({ item }: { item: Chat }) => {
     const otherParticipant = getOtherParticipant(item);
     const lastMessage = item.lastMessage;
-    const unreadCount = 0; // In a real app, you'd calculate this
+    // Note: unreadCount would need to be added to Chat type or calculated separately
+    const unreadCount = 0; // Temporary fix - implement proper unread count logic
+
+    if (!otherParticipant) return null;
 
     return (
       <Card 
         style={styles.chatCard}
-        onPress={() => {
-          if (otherParticipant) {
-            navigation.navigate('Chat', { 
-              chatId: item.id, 
-              otherUserId: otherParticipant.id 
-            });
-          }
-        }}
+        onPress={() => navigation.navigate('MessageChat', {
+          chatId: item.id,
+          otherUserId: otherParticipant.id
+        })}
       >
         <Card.Content>
-          <View style={styles.chatContent}>
-            <View style={styles.avatarContainer}>
-              <Avatar.Image 
-                size={50} 
-                source={{ uri: otherParticipant?.profileImage || 'https://via.placeholder.com/50' }}
-              />
-              {unreadCount > 0 && (
-                <Badge style={styles.badge}>{unreadCount}</Badge>
-              )}
-            </View>
-            
+          <View style={styles.chatHeader}>
             <View style={styles.chatInfo}>
-              <View style={styles.chatHeader}>
-                <Text style={styles.chatName}>
-                  {otherParticipant?.name || 'Unknown User'}
+              <Avatar.Image 
+                size={50}
+                source={{ uri: otherParticipant.profileImage || `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50"><rect width="50" height="50" fill="#6200ea"/><text x="50%" y="50%" text-anchor="middle" dy="0.35em" fill="white" font-size="22" font-family="Arial">${(otherParticipant.name || 'U').charAt(0).toUpperCase()}</text></svg>`)}` }}
+              />
+              <View style={styles.chatDetails}>
+                <Text style={styles.participantName}>
+                  {otherParticipant.name}
                 </Text>
-                <Text style={styles.timestamp}>
+                <Text style={styles.lastMessageTime}>
                   {lastMessage && formatTimestamp(lastMessage.timestamp)}
                 </Text>
               </View>
@@ -152,20 +153,27 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
       <Paragraph style={styles.emptyText}>
         Start a conversation with someone from your matches!
       </Paragraph>
+      <Button 
+        mode="contained" 
+        onPress={() => navigation.navigate('MessagesMain')}
+        style={styles.emptyButton}
+      >
+        Find Matches
+      </Button>
     </View>
   );
 
   if (loading && chats.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Loading messages...</Text>
+        <Text>Loading conversations...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.searchContainer}>
+      <View style={styles.header}>
         <Searchbar
           placeholder="Search conversations..."
           onChangeText={setSearchQuery}
@@ -178,18 +186,20 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
         data={filteredChats}
         renderItem={renderChatItem}
         keyExtractor={(item) => item.id}
-        style={styles.chatsList}
+        contentContainerStyle={[
+          styles.chatsList,
+          filteredChats.length === 0 && styles.emptyListContainer
+        ]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         ListEmptyComponent={renderEmptyState}
-        showsVerticalScrollIndicator={false}
       />
 
       <FAB
         style={styles.fab}
         icon="message-plus"
-        onPress={() => navigation.navigate('Matches')}
+        onPress={() => navigation.navigate('MessagesMain')}
         label="New Chat"
       />
     </View>
@@ -206,7 +216,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  searchContainer: {
+  header: {
     padding: 16,
     backgroundColor: 'white',
   },
@@ -216,59 +226,52 @@ const styles = StyleSheet.create({
   chatsList: {
     flex: 1,
   },
+  emptyListContainer: {
+    flex: 1,
+  },
   chatCard: {
     marginHorizontal: 16,
     marginVertical: 4,
     elevation: 2,
   },
-  chatContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginRight: 16,
-  },
-  badge: {
-    position: 'absolute',
-    top: -5,
-    right: -5,
-  },
-  chatInfo: {
-    flex: 1,
-  },
   chatHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
   },
-  chatName: {
+  chatInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  chatDetails: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  participantName: {
     fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 2,
   },
-  timestamp: {
+  lastMessageTime: {
     fontSize: 12,
     color: '#666',
   },
   lastMessageContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
+    flex: 2,
+    alignItems: 'flex-end',
   },
   lastMessage: {
     fontSize: 14,
     color: '#666',
-    flex: 1,
-    marginRight: 8,
+    marginBottom: 4,
   },
   unreadBadge: {
     backgroundColor: '#6200ea',
   },
   location: {
     fontSize: 12,
-    color: '#999',
+    color: '#666',
+    marginTop: 4,
   },
   emptyContainer: {
     flex: 1,
@@ -284,6 +287,10 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     color: '#666',
+    marginBottom: 16,
+  },
+  emptyButton: {
+    marginTop: 8,
   },
   fab: {
     position: 'absolute',

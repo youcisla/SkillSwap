@@ -1,17 +1,17 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    View,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    Avatar,
-    Card,
-    Text,
-    TextInput
+  Avatar,
+  Card,
+  Text,
+  TextInput
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchMessages, markAsRead, sendMessage } from '../../store/slices/messageSlice';
@@ -99,8 +99,8 @@ const ChatScreen: React.FC = () => {
               {item.content}
             </Text>
             <Text style={[
-              styles.timestamp,
-              isOwnMessage ? styles.ownTimestamp : styles.otherTimestamp
+              styles.messageTime,
+              isOwnMessage ? styles.ownMessageTime : styles.otherMessageTime
             ]}>
               {new Date(item.timestamp).toLocaleTimeString('en-US', {
                 hour: '2-digit',
@@ -112,19 +112,6 @@ const ChatScreen: React.FC = () => {
       </View>
     );
   };
-
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <Avatar.Image 
-        size={40} 
-        source={{ uri: otherUser?.profileImage || 'https://via.placeholder.com/40' }}
-      />
-      <View style={styles.headerText}>
-        <Text style={styles.headerName}>{otherUser?.name || 'Unknown User'}</Text>
-        <Text style={styles.headerSubtitle}>{otherUser?.city}</Text>
-      </View>
-    </View>
-  );
 
   if (loading && chatMessages.length === 0) {
     return (
@@ -139,25 +126,36 @@ const ChatScreen: React.FC = () => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      {renderHeader()}
-      
+      {/* Header */}
+      <View style={styles.header}>
+        <Avatar.Image 
+          size={40}
+          source={{ uri: otherUser?.profileImage || `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="#6200ea"/><text x="50%" y="50%" text-anchor="middle" dy="0.35em" fill="white" font-size="18" font-family="Arial">${(otherUser?.name || 'U').charAt(0).toUpperCase()}</text></svg>`)}` }}
+        />
+        <View style={styles.headerInfo}>
+          <Text style={styles.headerName}>{otherUser?.name || 'Unknown User'}</Text>
+          <Text style={styles.headerSubtitle}>{otherUser?.city}</Text>
+        </View>
+      </View>
+
+      {/* Messages List */}
       <FlatList
         ref={flatListRef}
         data={chatMessages}
         renderItem={renderMessage}
         keyExtractor={(item) => item.id}
         style={styles.messagesList}
-        contentContainerStyle={styles.messagesContainer}
+        contentContainerStyle={styles.messagesContent}
         inverted={false}
-        showsVerticalScrollIndicator={false}
       />
 
+      {/* Message Input */}
       <View style={styles.inputContainer}>
         <TextInput
-          label="Type a message..."
+          style={styles.textInput}
           value={messageText}
           onChangeText={setMessageText}
-          style={styles.messageInput}
+          placeholder="Type a message..."
           mode="outlined"
           multiline
           maxLength={500}
@@ -168,7 +166,6 @@ const ChatScreen: React.FC = () => {
               disabled={!messageText.trim()}
             />
           }
-          onSubmitEditing={handleSendMessage}
         />
       </View>
     </KeyboardAvoidingView>
@@ -191,9 +188,10 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#e0e0e0',
+    elevation: 2,
   },
-  headerText: {
+  headerInfo: {
     marginLeft: 12,
     flex: 1,
   },
@@ -208,21 +206,21 @@ const styles = StyleSheet.create({
   messagesList: {
     flex: 1,
   },
-  messagesContainer: {
-    padding: 16,
+  messagesContent: {
+    paddingVertical: 8,
   },
   messageContainer: {
     marginVertical: 4,
-    maxWidth: '80%',
+    marginHorizontal: 16,
   },
   ownMessage: {
-    alignSelf: 'flex-end',
+    alignItems: 'flex-end',
   },
   otherMessage: {
-    alignSelf: 'flex-start',
+    alignItems: 'flex-start',
   },
   messageCard: {
-    elevation: 2,
+    maxWidth: '80%',
   },
   ownMessageCard: {
     backgroundColor: '#6200ea',
@@ -231,11 +229,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   messageContent: {
-    padding: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   messageText: {
     fontSize: 16,
-    marginBottom: 4,
+    lineHeight: 20,
   },
   ownMessageText: {
     color: 'white',
@@ -243,23 +242,23 @@ const styles = StyleSheet.create({
   otherMessageText: {
     color: '#333',
   },
-  timestamp: {
+  messageTime: {
     fontSize: 12,
+    marginTop: 4,
   },
-  ownTimestamp: {
+  ownMessageTime: {
     color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'right',
   },
-  otherTimestamp: {
+  otherMessageTime: {
     color: '#666',
   },
   inputContainer: {
     padding: 16,
     backgroundColor: 'white',
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#e0e0e0',
   },
-  messageInput: {
+  textInput: {
     maxHeight: 100,
   },
 });

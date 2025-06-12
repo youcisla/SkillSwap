@@ -1,27 +1,27 @@
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
 import {
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    View,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    Avatar,
-    Button,
-    Card,
-    Chip,
-    FAB,
-    Paragraph,
-    Searchbar,
-    Text,
-    Title,
+  Avatar,
+  Button,
+  Card,
+  Chip,
+  FAB,
+  Paragraph,
+  Searchbar,
+  Text,
+  Title,
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../store';
 import { fetchMatches } from '../store/slices/matchSlice';
-import { Match, RootStackParamList } from '../types';
+import { Match, MatchesStackParamList } from '../types';
 
-type MatchesScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Matches'>;
+type MatchesScreenNavigationProp = StackNavigationProp<MatchesStackParamList, 'MatchesMain'>;
 
 interface Props {
   navigation: MatchesScreenNavigationProp;
@@ -100,10 +100,7 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={styles.compatibilityContainer}>
                   <Text style={styles.compatibilityLabel}>Match: </Text>
                   <Chip 
-                    style={[
-                      styles.compatibilityChip,
-                      { backgroundColor: getCompatibilityColor(item.compatibilityScore) }
-                    ]}
+                    style={[styles.compatibilityChip, { backgroundColor: getCompatibilityColor(item.compatibilityScore) }]}
                     textStyle={styles.compatibilityText}
                   >
                     {item.compatibilityScore}%
@@ -114,13 +111,18 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.skillsSection}>
-            <Text style={styles.skillsTitle}>Matched Skills:</Text>
+            <Text style={styles.skillsTitle}>Shared Skills</Text>
             <View style={styles.skillsContainer}>
-              {matchedSkills.map((skill, index) => (
+              {matchedSkills.slice(0, 3).map((skill, index) => (
                 <Chip key={index} style={styles.skillChip}>
                   {skill}
                 </Chip>
               ))}
+              {matchedSkills.length > 3 && (
+                <Text style={styles.moreSkills}>
+                  +{matchedSkills.length - 3} more
+                </Text>
+              )}
             </View>
           </View>
 
@@ -134,7 +136,7 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
             </Button>
             <Button 
               mode="contained" 
-              onPress={() => handleStartChat(matchedUser.id)}
+              onPress={() => handleStartChat(item.id, matchedUser.id)}
               style={styles.actionButton}
             >
               Start Chat
@@ -151,13 +153,11 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     return '#f44336';
   };
 
-  const handleStartChat = async (otherUserId: string) => {
-    if (!user?.id) return;
-    
+  const handleStartChat = async (matchId: string, otherUserId: string) => {
+    // Create or find existing chat
+    const chatId = `${user?.id}_${otherUserId}`;
     try {
-      // In a real app, you'd create or find existing chat
-      const chatId = `${user.id}-${otherUserId}`;
-      navigation.navigate('Chat', { chatId, otherUserId });
+      navigation.navigate('MatchChat', { chatId, otherUserId });
     } catch (error) {
       console.error('Failed to start chat:', error);
     }
@@ -171,7 +171,7 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
       </Paragraph>
       <Button 
         mode="contained" 
-        onPress={() => navigation.navigate('ProfileMain', { userId: undefined })}
+        onPress={() => navigation.navigate('MatchUserProfile', { userId: user?.id })}
         style={styles.emptyButton}
       >
         Update Profile
@@ -202,13 +202,14 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
         data={filteredMatches}
         renderItem={renderMatchCard}
         keyExtractor={(item) => item.id}
-        style={styles.matchesList}
+        contentContainerStyle={[
+          styles.matchesList,
+          filteredMatches.length === 0 && styles.emptyListContainer
+        ]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         ListEmptyComponent={renderEmptyState}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={filteredMatches.length === 0 ? styles.emptyListContainer : undefined}
       />
 
       <FAB
@@ -300,6 +301,12 @@ const styles = StyleSheet.create({
   skillChip: {
     margin: 2,
     backgroundColor: '#e3f2fd',
+  },
+  moreSkills: {
+    fontSize: 12,
+    color: '#666',
+    alignSelf: 'center',
+    marginLeft: 8,
   },
   matchActions: {
     flexDirection: 'row',

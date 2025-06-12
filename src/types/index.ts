@@ -118,7 +118,7 @@ export interface UserLocation {
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
-  Home: undefined;
+  Main: undefined;
   HomeMain: undefined;
   UserProfile: { userId?: string };
   MatchUserProfile: { userId?: string };
@@ -153,7 +153,7 @@ export type HomeStackParamList = {
   HomeMain: undefined;
   UserList: { skillId?: string };
   UserProfile: { userId?: string };
-  Chat: { chatId: string; otherUserId: string };
+  HomeChat: { chatId: string; otherUserId: string };
 };
 
 export type MatchesStackParamList = {

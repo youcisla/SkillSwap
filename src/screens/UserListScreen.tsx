@@ -1,29 +1,46 @@
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    View,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    Avatar,
-    Button,
-    Card,
-    Chip,
-    Paragraph,
-    Searchbar,
-    SegmentedButtons,
-    Text,
-    Title,
+  Avatar,
+  Button,
+  Card,
+  Chip,
+  Paragraph,
+  Searchbar,
+  SegmentedButtons,
+  Text,
+  Title,
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../store';
 import { searchUsers } from '../store/slices/userSlice';
-import { RootStackParamList, UserProfile } from '../types';
+import { HomeStackParamList, UserProfile } from '../types';
 
-type UserListScreenNavigationProp = StackNavigationProp<RootStackParamList, 'UserList'>;
-type UserListScreenRouteProp = RouteProp<RootStackParamList, 'UserList'>;
+// Debounce hook
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+type UserListScreenNavigationProp = StackNavigationProp<HomeStackParamList, 'UserList'>;
+type UserListScreenRouteProp = RouteProp<HomeStackParamList, 'UserList'>;
 
 interface Props {
   navigation: UserListScreenNavigationProp;
@@ -33,7 +50,7 @@ interface Props {
 const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const { users, loading } = useAppSelector((state) => state.user);
+  const { users, loading, error } = useAppSelector((state) => state.user);
   const { currentUser } = useAppSelector((state) => state.user);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,10 +58,14 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
   const [filterType, setFilterType] = useState('all');
 
   const initialSkillId = route.params?.skillId;
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
+  // Load users when debounced search query or filter changes
   useEffect(() => {
-    loadUsers();
-  }, [searchQuery, filterType]);
+    if (currentUser) {
+      loadUsers();
+    }
+  }, [debouncedSearchQuery, filterType, currentUser?.id]);
 
   useEffect(() => {
     if (initialSkillId) {
@@ -52,25 +73,35 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   }, [initialSkillId]);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
+    if (!currentUser) {
+      console.log('No current user, skipping search');
+      return;
+    }
+
     try {
       const filters: any = {};
-      
-      if (currentUser?.city) {
-        filters.city = currentUser.city;
-      }
 
-      if (filterType === 'teachers' && currentUser?.skillsToLearn) {
+      // Apply skill-based filters
+      if (filterType === 'teachers' && currentUser?.skillsToLearn && currentUser.skillsToLearn.length > 0) {
+        // Find users who can teach what current user wants to learn
         filters.skillsToTeach = currentUser.skillsToLearn.map(skill => skill.name);
-      } else if (filterType === 'students' && currentUser?.skillsToTeach) {
+      } else if (filterType === 'students' && currentUser?.skillsToTeach && currentUser.skillsToTeach.length > 0) {
+        // Find users who want to learn what current user can teach
         filters.skillsToLearn = currentUser.skillsToTeach.map(skill => skill.name);
       }
 
-      await dispatch(searchUsers({ query: searchQuery, filters })).unwrap();
+      console.log('Search parameters:', { query: debouncedSearchQuery, filters, filterType });
+      
+      await dispatch(searchUsers({ 
+        query: debouncedSearchQuery || '', 
+        filters: Object.keys(filters).length > 0 ? filters : undefined 
+      })).unwrap();
+      
     } catch (error) {
       console.error('Failed to load users:', error);
     }
-  };
+  }, [dispatch, debouncedSearchQuery, filterType, currentUser]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -97,7 +128,24 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const filteredUsers = users
     .filter(u => u.id !== user?.id) // Exclude current user
-    .sort((a, b) => getCompatibilityScore(b) - getCompatibilityScore(a)); // Sort by compatibility
+    .sort((a, b) => {
+      const scoreA = getCompatibilityScore(a);
+      const scoreB = getCompatibilityScore(b);
+      
+      // First sort by compatibility score (descending)
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA;
+      }
+      
+      // Then by name (ascending) for consistent ordering
+      return a.name.localeCompare(b.name);
+    });
+
+  // Debug logging
+  console.log('All users from Redux state:', users.length);
+  console.log('Current user ID:', user?.id);
+  console.log('Filtered users count:', filteredUsers.length);
+  console.log('Filter type:', filterType);
 
   const renderUserItem = ({ item: userProfile }: { item: UserProfile }) => {
     const compatibilityScore = getCompatibilityScore(userProfile);
@@ -108,12 +156,12 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={styles.userHeader}>
             <Avatar.Image 
               size={50} 
-              source={{ uri: userProfile.profileImage || 'https://via.placeholder.com/50' }}
+              source={{ uri: userProfile.profileImage || `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50"><rect width="50" height="50" fill="#6200ea"/><text x="50%" y="50%" text-anchor="middle" dy="0.35em" fill="white" font-size="24" font-family="Arial">${userProfile.name.charAt(0).toUpperCase()}</text></svg>`)}` }}
             />
             <View style={styles.userInfo}>
               <Title>{userProfile.name}</Title>
               <Paragraph>{userProfile.city}</Paragraph>
-              {userProfile.rating && (
+              {userProfile.rating && userProfile.rating > 0 && (
                 <Text style={styles.rating}>
                   ⭐ {userProfile.rating.toFixed(1)} ({userProfile.totalSessions || 0} sessions)
                 </Text>
@@ -144,11 +192,11 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
                     {skill.name}
                   </Chip>
                 ))}
-                {userProfile.skillsToTeach.length > 3 && (
+                {userProfile.skillsToTeach.length > 3 ? (
                   <Text style={styles.moreSkills}>
                     +{userProfile.skillsToTeach.length - 3} more
                   </Text>
-                )}
+                ) : null}
               </View>
             </View>
           )}
@@ -163,11 +211,11 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
                     {skill.name}
                   </Chip>
                 ))}
-                {userProfile.skillsToLearn.length > 3 && (
+                {userProfile.skillsToLearn.length > 3 ? (
                   <Text style={styles.moreSkills}>
                     +{userProfile.skillsToLearn.length - 3} more
                   </Text>
-                )}
+                ) : null}
               </View>
             </View>
           )}
@@ -183,7 +231,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
             </Button>
             <Button
               mode="contained"
-              onPress={() => navigation.navigate('Chat', { 
+              onPress={() => navigation.navigate('HomeChat', { 
                 chatId: `${user?.id}-${userProfile.id}`, 
                 otherUserId: userProfile.id 
               })}
@@ -199,10 +247,30 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyStateTitle}>No users found</Text>
+      <Text style={styles.emptyStateTitle}>
+        {loading ? 'Searching...' : error ? 'Search Error' : 'No users found'}
+      </Text>
       <Paragraph style={styles.emptyStateText}>
-        Try adjusting your search or filters to find more users.
+        {loading 
+          ? 'Finding users that match your criteria...'
+          : error
+            ? `Error: ${error}. Please try again.`
+            : filterType === 'all' 
+              ? 'Try adjusting your search or check back later.'
+              : filterType === 'teachers'
+                ? 'No users found who can teach the skills you want to learn. Try expanding your learning interests.'
+                : 'No users found who want to learn the skills you can teach. Consider adding more teaching skills.'
+        }
       </Paragraph>
+      {error && (
+        <Button 
+          mode="outlined" 
+          onPress={() => loadUsers()}
+          style={{ marginTop: 16 }}
+        >
+          Retry
+        </Button>
+      )}
     </View>
   );
 
@@ -225,8 +293,16 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
           onValueChange={setFilterType}
           buttons={[
             { value: 'all', label: 'All Users' },
-            { value: 'teachers', label: 'Can Teach Me' },
-            { value: 'students', label: 'Want to Learn' },
+            { 
+              value: 'teachers', 
+              label: 'Can Teach Me',
+              disabled: !currentUser?.skillsToLearn || currentUser.skillsToLearn.length === 0
+            },
+            { 
+              value: 'students', 
+              label: 'Want to Learn',
+              disabled: !currentUser?.skillsToTeach || currentUser.skillsToTeach.length === 0
+            },
           ]}
           style={styles.segmentedButtons}
         />

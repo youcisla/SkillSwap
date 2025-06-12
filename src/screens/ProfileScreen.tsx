@@ -83,11 +83,33 @@ const ProfileScreen: React.FC = () => {
 
   const handleStartChat = () => {
     if (userId && userId !== user?.id) {
-      // Type assertion to handle different stack types
-      (navigation as any).navigate('Chat', { 
-        chatId: `${user?.id}-${userId}`, 
-        otherUserId: userId 
-      });
+      // Try to determine which chat screen to navigate to based on the current stack
+      // This is a simplified approach - in a real app you might use a more sophisticated method
+      try {
+        // Try HomeChat first (most common case)
+        (navigation as any).navigate('HomeChat', { 
+          chatId: `${user?.id}-${userId}`, 
+          otherUserId: userId 
+        });
+      } catch (error) {
+        try {
+          // Try MatchChat if HomeChat doesn't work
+          (navigation as any).navigate('MatchChat', { 
+            chatId: `${user?.id}-${userId}`, 
+            otherUserId: userId 
+          });
+        } catch (error2) {
+          try {
+            // Try MessageChat as last resort
+            (navigation as any).navigate('MessageChat', { 
+              chatId: `${user?.id}-${userId}`, 
+              otherUserId: userId 
+            });
+          } catch (error3) {
+            console.log('Unable to navigate to chat from current context');
+          }
+        }
+      }
     }
   };
 
@@ -107,7 +129,7 @@ const ProfileScreen: React.FC = () => {
           <View style={styles.profileHeader}>
             <Avatar.Image 
               size={80} 
-              source={{ uri: profileUser.profileImage || 'https://via.placeholder.com/80' }}
+              source={{ uri: profileUser.profileImage || `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="#6200ea"/><text x="50%" y="50%" text-anchor="middle" dy="0.35em" fill="white" font-size="32" font-family="Arial">${profileUser.name.charAt(0).toUpperCase()}</text></svg>`)}` }}
             />
             <View style={styles.profileInfo}>
               <Title>{profileUser.name}</Title>

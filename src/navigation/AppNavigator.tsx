@@ -52,7 +52,7 @@ const AppNavigator: React.FC = () => {
         {isAuthenticated ? (
           // User is signed in
           <Stack.Screen 
-            name="Home" 
+            name="Main" 
             component={MainTabNavigator}
             options={{ headerShown: false }}
           />

@@ -161,3 +161,5 @@ firestore-debug.log
 *.backup
 *.bak
 *.tmp
+
+*.package-lock.json

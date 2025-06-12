@@ -3,21 +3,21 @@ import { CompositeNavigationProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
 import {
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    View
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View
 } from 'react-native';
 import {
-    Avatar,
-    Button,
-    Card,
-    Chip,
-    FAB,
-    Paragraph,
-    Searchbar,
-    Text,
-    Title
+  Avatar,
+  Button,
+  Card,
+  Chip,
+  FAB,
+  Paragraph,
+  Searchbar,
+  Text,
+  Title
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../store';
 import { fetchMatches } from '../store/slices/matchSlice';
@@ -77,8 +77,8 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const recentMatches = matches.slice(0, 3);
-  const teachSkills = skills.filter(skill => skill.userId === user?.id);
-  const learnSkills = currentUser?.skillsToLearn || [];
+  const teachSkills = skills.filter(skill => skill.type === 'teach');
+  const learnSkills = skills.filter(skill => skill.type === 'learn');
 
   return (
     <View style={styles.container}>
@@ -94,7 +94,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.welcomeHeader}>
               <Avatar.Image 
                 size={50} 
-                source={{ uri: currentUser?.profileImage || 'https://via.placeholder.com/50' }}
+                source={{ uri: currentUser?.profileImage || `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50"><rect width="50" height="50" fill="#6200ea"/><text x="50%" y="50%" text-anchor="middle" dy="0.35em" fill="white" font-size="24" font-family="Arial">${(currentUser?.name || user?.name || 'U').charAt(0).toUpperCase()}</text></svg>`)}` }}
               />
               <View style={styles.welcomeText}>
                 <Title>Welcome back, {currentUser?.name || user?.name}!</Title>
@@ -211,20 +211,20 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           </Card>
         )}
 
-        {/* Getting Started */}
-        {teachSkills.length === 0 && learnSkills.length === 0 && (
+        {/* Empty State */}
+        {teachSkills.length === 0 && learnSkills.length === 0 && matches.length === 0 && (
           <Card style={styles.sectionCard}>
             <Card.Content>
               <Title>Get Started</Title>
-              <Paragraph>
-                Add skills you can teach and skills you want to learn to start finding matches!
+              <Paragraph style={styles.emptyText}>
+                Welcome to SkillSwap! Add some skills to your profile to start finding people to exchange knowledge with.
               </Paragraph>
               <Button 
                 mode="contained" 
                 onPress={() => navigation.navigate('Profile')}
                 style={styles.sectionButton}
               >
-                Set Up Your Profile
+                Add Skills
               </Button>
             </Card.Content>
           </Card>
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   },
   welcomeCard: {
     margin: 16,
-    marginBottom: 8,
+    elevation: 4,
   },
   welcomeHeader: {
     flexDirection: 'row',
@@ -276,9 +276,11 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     marginHorizontal: 4,
+    elevation: 2,
   },
   statContent: {
     alignItems: 'center',
+    paddingVertical: 16,
   },
   statNumber: {
     fontSize: 24,
@@ -291,11 +293,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   sectionCard: {
-    margin: 16,
-    marginTop: 8,
-  },
-  sectionButton: {
-    marginTop: 8,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    elevation: 2,
   },
   matchItem: {
     flexDirection: 'row',
@@ -303,15 +303,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#e0e0e0',
   },
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 8,
+    marginBottom: 12,
   },
   chip: {
-    margin: 4,
+    margin: 2,
+  },
+  sectionButton: {
+    marginTop: 8,
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginBottom: 16,
+    color: '#666',
   },
   fab: {
     position: 'absolute',

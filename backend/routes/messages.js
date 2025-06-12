@@ -13,7 +13,7 @@ router.get('/chat/:chatId', auth, async (req, res) => {
     // Verify user is part of the chat
     const chat = await Chat.findOne({
       _id: req.params.chatId,
-      participants: req.user.id
+      participants: req.userId
     });
 
     if (!chat) {
@@ -21,7 +21,7 @@ router.get('/chat/:chatId', auth, async (req, res) => {
     }
 
     const messages = await Message.find({ chat: req.params.chatId })
-      .populate('sender', 'name email avatar')
+      .populate('sender', 'name email profileImage')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip(offset)
@@ -40,29 +40,55 @@ router.get('/chat/:chatId', auth, async (req, res) => {
 // Send a message
 router.post('/', auth, async (req, res) => {
   try {
-    const { chatId, content, type = 'text' } = req.body;
+    const { chatId, senderId, receiverId, content, type = 'text' } = req.body;
 
-    if (!chatId || !content) {
-      return res.status(400).json({ error: 'Chat ID and content are required' });
+    // Handle both formats: chatId directly or senderId/receiverId
+    let actualChatId = chatId;
+    
+    if (!chatId && senderId && receiverId) {
+      // Find or create chat between sender and receiver
+      let chat = await Chat.findOne({
+        participants: { $all: [senderId, receiverId], $size: 2 }
+      });
+
+      if (!chat) {
+        // Create new chat
+        chat = new Chat({
+          participants: [senderId, receiverId]
+        });
+        await chat.save();
+      }
+      
+      actualChatId = chat._id;
+    }
+
+    if (!actualChatId || !content) {
+      return res.status(400).json({
+        success: false,
+        error: 'Chat ID/participants and content are required'
+      });
     }
 
     // Verify user is part of the chat
     const chat = await Chat.findOne({
-      _id: chatId,
-      participants: req.user.id
+      _id: actualChatId,
+      participants: req.userId
     });
 
     if (!chat) {
-      return res.status(404).json({ error: 'Chat not found' });
+      return res.status(404).json({
+        success: false,
+        error: 'Chat not found'
+      });
     }
 
     // Create new message
     const message = new Message({
-      chat: chatId,
-      sender: req.user.id,
+      chat: actualChatId,
+      sender: req.userId,
       content,
       type,
-      readBy: [req.user.id] // Sender has read the message
+      readBy: [req.userId] // Sender has read the message
     });
 
     await message.save();
@@ -73,12 +99,25 @@ router.post('/', auth, async (req, res) => {
     await chat.save();
 
     // Populate message with sender info
-    await message.populate('sender', 'name email avatar');
+    await message.populate('sender', 'name email profileImage');
 
-    res.status(201).json(message);
+    res.status(201).json({
+      success: true,
+      data: {
+        id: message._id,
+        senderId: message.sender._id,
+        receiverId: chat.participants.find(p => p.toString() !== message.sender._id.toString()),
+        content: message.content,
+        timestamp: message.createdAt,
+        isRead: message.readBy.includes(req.userId)
+      }
+    });
   } catch (error) {
     console.error('Error sending message:', error);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send message'
+    });
   }
 });
 
@@ -94,7 +133,7 @@ router.patch('/:messageId/read', auth, async (req, res) => {
     // Verify user is part of the chat
     const chat = await Chat.findOne({
       _id: message.chat,
-      participants: req.user.id
+      participants: req.userId
     });
 
     if (!chat) {
@@ -102,8 +141,8 @@ router.patch('/:messageId/read', auth, async (req, res) => {
     }
 
     // Add user to readBy array if not already there
-    if (!message.readBy.includes(req.user.id)) {
-      message.readBy.push(req.user.id);
+    if (!message.readBy.includes(req.userId)) {
+      message.readBy.push(req.userId);
       await message.save();
     }
 
@@ -125,7 +164,7 @@ router.patch('/:messageId', auth, async (req, res) => {
 
     const message = await Message.findOne({
       _id: req.params.messageId,
-      sender: req.user.id
+      sender: req.userId
     });
 
     if (!message) {
@@ -150,7 +189,7 @@ router.delete('/:messageId', auth, async (req, res) => {
   try {
     const message = await Message.findOne({
       _id: req.params.messageId,
-      sender: req.user.id
+      sender: req.userId
     });
 
     if (!message) {
@@ -181,7 +220,7 @@ router.get('/unread/count', auth, async (req, res) => {
   try {
     // Get all chats for the user
     const chats = await Chat.find({
-      participants: req.user.id
+      participants: req.userId
     }).select('_id');
 
     const chatIds = chats.map(chat => chat._id);
@@ -189,8 +228,8 @@ router.get('/unread/count', auth, async (req, res) => {
     // Count unread messages across all chats
     const unreadCount = await Message.countDocuments({
       chat: { $in: chatIds },
-      sender: { $ne: req.user.id },
-      readBy: { $nin: [req.user.id] }
+      sender: { $ne: req.userId },
+      readBy: { $nin: [req.userId] }
     });
 
     res.json({ unreadCount });

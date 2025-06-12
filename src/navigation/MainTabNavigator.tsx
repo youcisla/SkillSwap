@@ -3,12 +3,12 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
 import {
-  CalendarStackParamList,
-  HomeStackParamList,
-  MatchesStackParamList,
-  MessagesStackParamList,
-  ProfileStackParamList,
-  TabParamList
+    CalendarStackParamList,
+    HomeStackParamList,
+    MatchesStackParamList,
+    MessagesStackParamList,
+    ProfileStackParamList,
+    TabParamList
 } from '../types';
 
 // Import screens
@@ -49,7 +49,7 @@ const HomeStackScreen = () => (
       options={{ title: 'Profile' }}
     />
     <HomeStack.Screen 
-      name="Chat" 
+      name="HomeChat" 
       component={ChatScreen}
       options={{ title: 'Chat' }}
     />

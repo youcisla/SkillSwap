@@ -142,10 +142,10 @@ const SessionDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const handleMessage = () => {
-    navigation.navigate('Chat', {
-      chatId: `${user?.id}-${otherUser.id}`,
-      otherUserId: otherUser.id,
-    });
+    // SessionDetails is in CalendarStack which doesn't have Chat screens
+    // For now, just log - in a real app you'd navigate to Messages tab
+    console.log('Navigate to chat:', { chatId: `${user?.id}-${otherUser.id}`, otherUserId: otherUser.id });
+    // TODO: Implement navigation to Messages tab
   };
 
   return (

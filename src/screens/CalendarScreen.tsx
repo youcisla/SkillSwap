@@ -1,20 +1,20 @@
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
 import {
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    View,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    Avatar,
-    Button,
-    Card,
-    Chip,
-    FAB,
-    Paragraph,
-    Text,
-    Title,
+  Avatar,
+  Button,
+  Card,
+  Chip,
+  FAB,
+  Paragraph,
+  Text,
+  Title,
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../store';
 import { fetchSessions } from '../store/slices/sessionSlice';
@@ -129,7 +129,7 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.participantInfo}>
             <Avatar.Image 
               size={40} 
-              source={{ uri: otherParticipant?.profileImage || 'https://via.placeholder.com/40' }}
+              source={{ uri: otherParticipant?.profileImage || `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="#6200ea"/><text x="50%" y="50%" text-anchor="middle" dy="0.35em" fill="white" font-size="20" font-family="Arial">${(otherParticipant?.name || 'U').charAt(0).toUpperCase()}</text></svg>`)}` }}
             />
             <View style={styles.participantDetails}>
               <Text style={styles.participantName}>
@@ -253,11 +253,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginHorizontal: 16,
     marginVertical: 8,
-    color: '#6200ea',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   sessionCard: {
     marginHorizontal: 16,
     marginVertical: 8,
+    elevation: 2,
   },
   sessionHeader: {
     flexDirection: 'row',
@@ -269,12 +271,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sessionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     marginBottom: 4,
   },
   sessionDate: {
-    color: '#666',
     fontSize: 14,
+    color: '#666',
   },
   statusChip: {
     marginLeft: 8,
@@ -282,6 +284,7 @@ const styles = StyleSheet.create({
   statusText: {
     color: 'white',
     fontSize: 12,
+    fontWeight: 'bold',
   },
   participantInfo: {
     flexDirection: 'row',
@@ -293,25 +296,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   participantName: {
-    fontWeight: 'bold',
     fontSize: 16,
+    fontWeight: 'bold',
   },
   skillName: {
-    color: '#666',
     fontSize: 14,
+    color: '#666',
   },
   location: {
-    marginVertical: 4,
+    fontSize: 14,
     color: '#666',
+    marginBottom: 8,
   },
   notes: {
-    marginVertical: 8,
-    fontStyle: 'italic',
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 12,
   },
   sessionActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 12,
   },
   actionButton: {
     marginLeft: 8,
@@ -323,9 +327,11 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     color: '#666',
+    fontStyle: 'italic',
   },
   viewMoreButton: {
-    marginHorizontal: 16,
+    alignSelf: 'center',
+    marginTop: 8,
   },
   fab: {
     position: 'absolute',

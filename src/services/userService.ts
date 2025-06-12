@@ -64,29 +64,35 @@ class UserService {
   }): Promise<UserProfile[]> {
     try {
       const queryParams = new URLSearchParams();
-      queryParams.append('q', query);
       
-      if (filters?.city) {
-        queryParams.append('city', filters.city);
+      // Only add query if it's not empty
+      if (query && query.trim()) {
+        queryParams.append('q', query.trim());
       }
       
-      if (filters?.skillsToTeach) {
-        filters.skillsToTeach.forEach(skill => 
-          queryParams.append('skillsToTeach', skill)
-        );
+      if (filters?.city && filters.city.trim()) {
+        queryParams.append('city', filters.city.trim());
       }
       
-      if (filters?.skillsToLearn) {
-        filters.skillsToLearn.forEach(skill => 
-          queryParams.append('skillsToLearn', skill)
-        );
+      if (filters?.skillsToTeach && filters.skillsToTeach.length > 0) {
+        filters.skillsToTeach
+          .filter(skill => skill && skill.trim())
+          .forEach(skill => queryParams.append('skillsToTeach', skill.trim()));
+      }
+      
+      if (filters?.skillsToLearn && filters.skillsToLearn.length > 0) {
+        filters.skillsToLearn
+          .filter(skill => skill && skill.trim())
+          .forEach(skill => queryParams.append('skillsToLearn', skill.trim()));
       }
 
-      const response = await ApiService.get<ApiResponse<UserProfile[]>>(
-        `/users/search?${queryParams.toString()}`
-      );
+      const url = `/users/search${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      console.log('UserService: Making request to:', url);
+
+      const response = await ApiService.get<ApiResponse<UserProfile[]>>(url);
       
       if (response.success && response.data) {
+        console.log('UserService: Received users:', response.data.length);
         return response.data;
       }
       
