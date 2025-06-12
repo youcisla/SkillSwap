@@ -14,6 +14,8 @@ import {
 // Import screens
 import CalendarScreen from '../screens/CalendarScreen';
 import ChatScreen from '../screens/chat/ChatScreen';
+import FollowersScreen from '../screens/follows/FollowersScreen';
+import FollowingScreen from '../screens/follows/FollowingScreen';
 import HomeScreen from '../screens/HomeScreen';
 import MatchesScreen from '../screens/MatchesScreen';
 import MessagesScreen from '../screens/MessagesScreen';
@@ -112,6 +114,16 @@ const ProfileStackScreen = () => (
       name="AddSkill" 
       component={AddSkillScreen}
       options={{ title: 'Add Skill' }}
+    />
+    <ProfileStack.Screen 
+      name="Followers" 
+      component={FollowersScreen}
+      options={{ title: 'Followers' }}
+    />
+    <ProfileStack.Screen 
+      name="Following" 
+      component={FollowingScreen}
+      options={{ title: 'Following' }}
     />
   </ProfileStack.Navigator>
 );

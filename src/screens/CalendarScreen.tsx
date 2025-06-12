@@ -17,10 +17,10 @@ import {
   Title,
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../store';
-import { fetchSessions } from '../store/slices/sessionSlice';
-import { RootStackParamList, Session, SessionStatus } from '../types';
+import { fetchSessions, updateSessionStatus } from '../store/slices/sessionSlice';
+import { CalendarStackParamList, Session, SessionStatus } from '../types';
 
-type CalendarScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Calendar'>;
+type CalendarScreenNavigationProp = StackNavigationProp<CalendarStackParamList, 'CalendarMain'>;
 
 interface Props {
   navigation: CalendarScreenNavigationProp;
@@ -160,6 +160,19 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
                 mode="contained" 
                 compact
                 style={styles.actionButton}
+                onPress={async () => {
+                  try {
+                    await dispatch(updateSessionStatus({
+                      sessionId: session.id,
+                      status: SessionStatus.CONFIRMED
+                    })).unwrap();
+                    
+                    // Refresh sessions to reflect changes
+                    await loadSessions();
+                  } catch (error) {
+                    console.error('Failed to confirm/accept session:', error);
+                  }
+                }}
               >
                 {isTeacher ? 'Confirm' : 'Accept'}
               </Button>
@@ -217,7 +230,14 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
             </Card>
           )}
           {pastSessions.length > 5 && (
-            <Button mode="text" style={styles.viewMoreButton}>
+            <Button 
+              mode="text" 
+              style={styles.viewMoreButton}
+              onPress={() => {
+                // TODO: Navigate to a full past sessions screen
+                console.log('View more past sessions');
+              }}
+            >
               View More Past Sessions
             </Button>
           )}
@@ -227,7 +247,10 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       <FAB
         style={styles.fab}
         icon="plus"
-        onPress={() => navigation.navigate('Matches')}
+        onPress={() => {
+          // Navigate to Matches tab to schedule a session
+          (navigation as any).navigate('Matches');
+        }}
         label="Schedule"
       />
     </View>

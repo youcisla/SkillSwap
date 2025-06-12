@@ -20,6 +20,7 @@ import {
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../store';
 import { logout } from '../store/slices/authSlice';
+import { checkFollowStatus, fetchFollowStats, followUser, unfollowUser } from '../store/slices/followSlice';
 import { fetchUserSkills } from '../store/slices/skillSlice';
 import { fetchUserProfile } from '../store/slices/userSlice';
 import { HomeStackParamList, MatchesStackParamList, ProfileStackParamList } from '../types';
@@ -47,6 +48,7 @@ const ProfileScreen: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
   const { currentUser, users, loading } = useAppSelector((state) => state.user);
   const { skills } = useAppSelector((state) => state.skills);
+  const { isFollowing, followStats } = useAppSelector((state) => state.follows);
 
   const params = route.params as ProfileParams | undefined;
   const userId = params?.userId || user?.id;
@@ -61,8 +63,14 @@ const ProfileScreen: React.FC = () => {
     if (userId) {
       dispatch(fetchUserProfile(userId));
       dispatch(fetchUserSkills(userId));
+      dispatch(fetchFollowStats(userId));
+      
+      // Check follow status if viewing another user's profile
+      if (!isOwnProfile && user?.id) {
+        dispatch(checkFollowStatus(userId));
+      }
     }
-  }, [userId]);
+  }, [userId, isOwnProfile, user?.id]);
 
   const handleLogout = () => {
     Alert.alert(
@@ -87,33 +95,54 @@ const ProfileScreen: React.FC = () => {
       const sortedIds = [user?.id, userId].sort();
       const chatId = `${sortedIds[0]}-${sortedIds[1]}`;
       
-      // Try to determine which chat screen to navigate to based on the current stack
-      // This is a simplified approach - in a real app you might use a more sophisticated method
+      // Navigate to Messages tab and then to chat
       try {
-        // Try HomeChat first (most common case)
-        (navigation as any).navigate('HomeChat', { 
-          chatId, 
-          otherUserId: userId 
+        (navigation as any).navigate('Messages', { 
+          screen: 'MessageChat',
+          params: { chatId, otherUserId: userId }
         });
       } catch (error) {
+        console.log('Navigation error:', error);
+        // Fallback: navigate directly if tab navigation fails
         try {
-          // Try MatchChat if HomeChat doesn't work
-          (navigation as any).navigate('MatchChat', { 
+          (navigation as any).navigate('MessageChat', { 
             chatId, 
             otherUserId: userId 
           });
         } catch (error2) {
-          try {
-            // Try MessageChat as last resort
-            (navigation as any).navigate('MessageChat', { 
-              chatId, 
-              otherUserId: userId 
-            });
-          } catch (error3) {
-            console.log('Unable to navigate to chat from current context');
-          }
+          console.log('Direct navigation also failed:', error2);
         }
       }
+    }
+  };
+
+  const handleFollowToggle = async () => {
+    if (!userId || !user?.id) return;
+    
+    try {
+      const currentFollowStatus = isFollowing[userId];
+      if (currentFollowStatus) {
+        await dispatch(unfollowUser(userId)).unwrap();
+      } else {
+        await dispatch(followUser(userId)).unwrap();
+      }
+      // Refresh follow stats
+      dispatch(fetchFollowStats(userId));
+    } catch (error) {
+      console.error('Failed to toggle follow status:', error);
+      Alert.alert('Error', 'Failed to update follow status. Please try again.');
+    }
+  };
+
+  const handleFollowersPress = () => {
+    if (userId) {
+      (navigation as any).navigate('Followers', { userId });
+    }
+  };
+
+  const handleFollowingPress = () => {
+    if (userId) {
+      (navigation as any).navigate('Following', { userId });
     }
   };
 
@@ -143,18 +172,62 @@ const ProfileScreen: React.FC = () => {
                   ⭐ {profileUser.rating.toFixed(1)} ({profileUser.totalSessions || 0} sessions)
                 </Text>
               )}
+              
+              {/* Follow Stats */}
+              <View style={styles.followStats}>
+                <Button
+                  mode="text"
+                  onPress={handleFollowersPress}
+                  style={styles.statButton}
+                  labelStyle={styles.statButtonLabel}
+                >
+                  <Text style={styles.statNumber}>
+                    {followStats?.followersCount || profileUser.followersCount || 0}
+                  </Text>{' '}
+                  Followers
+                </Button>
+                <Button
+                  mode="text"
+                  onPress={handleFollowingPress}
+                  style={styles.statButton}
+                  labelStyle={styles.statButtonLabel}
+                >
+                  <Text style={styles.statNumber}>
+                    {followStats?.followingCount || profileUser.followingCount || 0}
+                  </Text>{' '}
+                  Following
+                </Button>
+              </View>
             </View>
-            {isOwnProfile ? (
-              <IconButton
-                icon="pencil"
-                onPress={() => (navigation as any).navigate('EditProfile')}
-              />
-            ) : (
-              <IconButton
-                icon="message"
-                onPress={handleStartChat}
-              />
-            )}
+            
+            {/* Action Buttons */}
+            <View style={styles.profileActions}>
+              {isOwnProfile ? (
+                <IconButton
+                  icon="pencil"
+                  onPress={() => (navigation as any).navigate('EditProfile')}
+                />
+              ) : (
+                <View style={styles.otherUserActions}>
+                  <Button
+                    mode={userId && isFollowing[userId] ? "outlined" : "contained"}
+                    onPress={handleFollowToggle}
+                    style={styles.followButton}
+                    icon={userId && isFollowing[userId] ? "account-minus" : "account-plus"}
+                    buttonColor={userId && isFollowing[userId] ? undefined : "#6200ea"}
+                    textColor={userId && isFollowing[userId] ? "#6200ea" : undefined}
+                  >
+                    {userId && isFollowing[userId] ? "Unfollow" : "Follow"}
+                  </Button>
+                  <IconButton
+                    icon="message"
+                    onPress={handleStartChat}
+                    mode="contained"
+                    style={styles.messageIcon}
+                  />
+                </View>
+              )}
+            </View>
           </View>
           
           {profileUser.bio && (
@@ -304,6 +377,36 @@ const styles = StyleSheet.create({
   profileInfo: {
     marginLeft: 16,
     flex: 1,
+  },
+  followStats: {
+    flexDirection: 'row',
+    marginTop: 8,
+    gap: 16,
+  },
+  statButton: {
+    minWidth: 0,
+    paddingHorizontal: 0,
+  },
+  statButtonLabel: {
+    fontSize: 12,
+    marginHorizontal: 0,
+  },
+  statNumber: {
+    fontWeight: 'bold',
+    color: '#6200ea',
+  },
+  profileActions: {
+    alignItems: 'center',
+  },
+  otherUserActions: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  followButton: {
+    minWidth: 100,
+  },
+  messageIcon: {
+    backgroundColor: '#6200ea',
   },
   rating: {
     color: '#666',

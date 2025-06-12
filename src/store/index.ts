@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import authSlice from './slices/authSlice';
+import followSlice from './slices/followSlice';
 import matchSlice from './slices/matchSlice';
 import messageSlice from './slices/messageSlice';
 import sessionSlice from './slices/sessionSlice';
@@ -15,6 +16,7 @@ export const store = configureStore({
     sessions: sessionSlice,
     messages: messageSlice,
     matches: matchSlice,
+    follows: followSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

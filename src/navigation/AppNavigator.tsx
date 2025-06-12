@@ -9,6 +9,9 @@ import { RootStackParamList } from '../types';
 // Import screens
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import EditProfileScreen from '../screens/profile/EditProfileScreen';
+import AddSkillScreen from '../screens/skills/AddSkillScreen';
+import SkillManagementScreen from '../screens/skills/SkillManagementScreen';
 import MainTabNavigator from './MainTabNavigator';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -51,11 +54,40 @@ const AppNavigator: React.FC = () => {
       >
         {isAuthenticated ? (
           // User is signed in
-          <Stack.Screen 
-            name="Main" 
-            component={MainTabNavigator}
-            options={{ headerShown: false }}
-          />
+          <>
+            <Stack.Screen 
+              name="Main" 
+              component={MainTabNavigator}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="EditProfile" 
+              component={EditProfileScreen}
+              options={{ 
+                headerShown: true,
+                title: 'Edit Profile',
+                headerBackTitleVisible: false 
+              }}
+            />
+            <Stack.Screen 
+              name="SkillManagement" 
+              component={SkillManagementScreen}
+              options={{ 
+                headerShown: true,
+                title: 'Manage Skills',
+                headerBackTitleVisible: false 
+              }}
+            />
+            <Stack.Screen 
+              name="AddSkill" 
+              component={AddSkillScreen}
+              options={{ 
+                headerShown: true,
+                title: 'Add Skill',
+                headerBackTitleVisible: false 
+              }}
+            />
+          </>
         ) : (
           // User is not signed in
           <>

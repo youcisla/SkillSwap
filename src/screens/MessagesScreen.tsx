@@ -1,3 +1,5 @@
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { CompositeNavigationProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
 import {
@@ -18,9 +20,12 @@ import {
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../store';
 import { fetchChats } from '../store/slices/messageSlice';
-import { Chat, MessagesStackParamList } from '../types';
+import { Chat, MessagesStackParamList, TabParamList } from '../types';
 
-type MessagesScreenNavigationProp = StackNavigationProp<MessagesStackParamList, 'MessagesMain'>;
+type MessagesScreenNavigationProp = CompositeNavigationProp<
+  StackNavigationProp<MessagesStackParamList, 'MessagesMain'>,
+  BottomTabNavigationProp<TabParamList>
+>;
 
 interface Props {
   navigation: MessagesScreenNavigationProp;
@@ -199,7 +204,13 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
       <FAB
         style={styles.fab}
         icon="message-plus"
-        onPress={() => navigation.navigate('MessagesMain')}
+        onPress={() => {
+          // Navigate to tab navigator then to Home tab and UserList
+          (navigation as any).navigate('Home', { 
+            screen: 'UserList',
+            params: {}
+          });
+        }}
         label="New Chat"
       />
     </View>

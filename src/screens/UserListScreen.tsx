@@ -19,6 +19,7 @@ import {
   Title,
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../store';
+import { checkFollowStatus, followUser, unfollowUser } from '../store/slices/followSlice';
 import { searchUsers } from '../store/slices/userSlice';
 import { HomeStackParamList, UserProfile } from '../types';
 
@@ -52,6 +53,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user } = useAppSelector((state) => state.auth);
   const { users, loading, error } = useAppSelector((state) => state.user);
   const { currentUser } = useAppSelector((state) => state.user);
+  const { isFollowing } = useAppSelector((state) => state.follows);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -108,6 +110,30 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
     await loadUsers();
     setRefreshing(false);
   };
+
+  const handleFollowToggle = async (userId: string) => {
+    try {
+      const currentFollowStatus = isFollowing[userId];
+      if (currentFollowStatus) {
+        await dispatch(unfollowUser(userId)).unwrap();
+      } else {
+        await dispatch(followUser(userId)).unwrap();
+      }
+    } catch (error) {
+      console.error('Failed to toggle follow status:', error);
+    }
+  };
+
+  // Check follow status for all users when they load
+  useEffect(() => {
+    if (users.length > 0 && user?.id) {
+      users.forEach(userProfile => {
+        if (userProfile.id !== user.id) {
+          dispatch(checkFollowStatus(userProfile.id));
+        }
+      });
+    }
+  }, [users, user?.id]);
 
   const getCompatibilityScore = (otherUser: UserProfile) => {
     if (!currentUser) return 0;
@@ -228,6 +254,16 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
               style={styles.actionButton}
             >
               View Profile
+            </Button>
+            <Button
+              mode={isFollowing[userProfile.id] ? "outlined" : "contained"}
+              onPress={() => handleFollowToggle(userProfile.id)}
+              style={[styles.actionButton, styles.followButton]}
+              icon={isFollowing[userProfile.id] ? "account-minus" : "account-plus"}
+              buttonColor={isFollowing[userProfile.id] ? undefined : "#6200ea"}
+              textColor={isFollowing[userProfile.id] ? "#6200ea" : undefined}
+            >
+              {isFollowing[userProfile.id] ? "Unfollow" : "Follow"}
             </Button>
             <Button
               mode="contained"
@@ -417,10 +453,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 12,
+    gap: 4,
   },
   actionButton: {
     flex: 1,
-    marginHorizontal: 4,
+    marginHorizontal: 2,
+  },
+  followButton: {
+    minWidth: 100,
   },
   emptyState: {
     alignItems: 'center',

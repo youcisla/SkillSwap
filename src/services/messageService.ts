@@ -34,12 +34,17 @@ class MessageService {
 
   async sendMessage(messageData: Omit<Message, 'id' | 'timestamp' | 'isRead'>): Promise<{ chatId: string; message: Message }> {
     try {
-      // Generate consistent chat ID by sorting user IDs
-      const sortedIds = [messageData.senderId, messageData.receiverId].sort();
-      const chatId = `${sortedIds[0]}-${sortedIds[1]}`;
+      // Use provided chatId or generate consistent chat ID by sorting user IDs
+      let chatId = messageData.chatId;
+      if (!chatId) {
+        const sortedIds = [messageData.senderId, messageData.receiverId].sort();
+        chatId = `${sortedIds[0]}-${sortedIds[1]}`;
+      }
       
       const response = await ApiService.post<ApiResponse<Message>>('/messages', {
-        ...messageData,
+        senderId: messageData.senderId,
+        receiverId: messageData.receiverId,
+        content: messageData.content,
         chatId
       });
       

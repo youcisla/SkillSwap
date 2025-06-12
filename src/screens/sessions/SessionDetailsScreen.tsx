@@ -1,6 +1,6 @@
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -17,7 +17,8 @@ import {
   Title
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { RootStackParamList, Session, SessionStatus } from '../../types';
+import { cancelSession, completeSession, fetchSessionById, updateSessionStatus } from '../../store/slices/sessionSlice';
+import { RootStackParamList, SessionStatus } from '../../types';
 
 type SessionDetailsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SessionDetails'>;
 type SessionDetailsScreenRouteProp = RouteProp<RootStackParamList, 'SessionDetails'>;
@@ -33,31 +34,43 @@ const SessionDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const { currentSession, loading } = useAppSelector((state) => state.sessions);
 
   const sessionId = route.params?.sessionId;
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Mock session data for demo
-  const [session] = useState<Session>({
-    id: sessionId || '1',
-    teacherId: 'teacher1',
-    studentId: 'student1',
-    skillId: 'skill1',
-    status: SessionStatus.CONFIRMED,
-    scheduledAt: new Date('2025-06-15T14:00:00'),
-    location: 'Central Library, Meeting Room 2',
-    notes: 'Bring your guitar and any music sheets you want to work on.',
-    createdAt: new Date('2025-06-10T10:00:00'),
-    updatedAt: new Date('2025-06-10T10:00:00'),
-  });
+  // Fetch session data when component mounts
+  useEffect(() => {
+    if (sessionId) {
+      dispatch(fetchSessionById(sessionId));
+    }
+  }, [sessionId, dispatch]);
 
-  // Mock user data
-  const otherUser = {
-    id: session.teacherId === user?.id ? session.studentId : session.teacherId,
-    name: session.teacherId === user?.id ? 'Alice Johnson' : 'Bob Smith',
-    profileImage: 'https://via.placeholder.com/100',
-    rating: 4.8,
-  };
+  // Use real session data from Redux store
+  const session = currentSession;
 
-  const skillName = 'Guitar Playing';
+  if (!session && !loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Session not found</Text>
+      </View>
+    );
+  }
+
+  if (loading || !session) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading session details...</Text>
+      </View>
+    );
+  }
+
+  // Get other participant information from populated session data
   const isTeacher = session.teacherId === user?.id;
+  const otherUser = isTeacher 
+    ? (session as any).studentId // Backend populates this with user object
+    : (session as any).teacherId; // Backend populates this with user object
+
+  // Get skill information from populated session data
+  const skillInfo = (session as any).skillId; // Backend populates this with skill object
+  const skillName = skillInfo?.name || 'Unknown Skill';
 
   const getStatusColor = (status: SessionStatus) => {
     switch (status) {
@@ -89,7 +102,9 @@ const SessionDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (!sessionId) return;
+    
     Alert.alert(
       'Confirm Session',
       'Are you sure you want to confirm this session?',
@@ -97,16 +112,29 @@ const SessionDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Confirm',
-          onPress: () => {
-            // In a real app, dispatch action to update session status
-            console.log('Confirming session:', sessionId);
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              await dispatch(updateSessionStatus({ 
+                sessionId, 
+                status: SessionStatus.CONFIRMED 
+              })).unwrap();
+              Alert.alert('Success', 'Session confirmed successfully!');
+            } catch (error) {
+              console.error('Failed to confirm session:', error);
+              Alert.alert('Error', 'Failed to confirm session. Please try again.');
+            } finally {
+              setIsLoading(false);
+            }
           },
         },
       ]
     );
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
+    if (!sessionId) return;
+    
     Alert.alert(
       'Cancel Session',
       'Are you sure you want to cancel this session?',
@@ -115,26 +143,50 @@ const SessionDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         {
           text: 'Cancel Session',
           style: 'destructive',
-          onPress: () => {
-            // In a real app, dispatch action to cancel session
-            console.log('Cancelling session:', sessionId);
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              await dispatch(cancelSession({ 
+                sessionId, 
+                reason: 'Cancelled by user' 
+              })).unwrap();
+              Alert.alert('Success', 'Session cancelled successfully.');
+            } catch (error) {
+              console.error('Failed to cancel session:', error);
+              Alert.alert('Error', 'Failed to cancel session. Please try again.');
+            } finally {
+              setIsLoading(false);
+            }
           },
         },
       ]
     );
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
+    if (!sessionId) return;
+    
     Alert.alert(
       'Mark as Complete',
-      'Mark this session as completed?',
+      'Mark this session as completed? You can add feedback after marking it complete.',
       [
         { text: 'Not Yet', style: 'cancel' },
         {
           text: 'Complete',
-          onPress: () => {
-            // In a real app, navigate to feedback screen
-            console.log('Completing session:', sessionId);
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              // For now, complete without feedback - could add feedback screen later
+              await dispatch(completeSession({ 
+                sessionId 
+              })).unwrap();
+              Alert.alert('Success', 'Session marked as complete! Thank you for using SkillSwap.');
+            } catch (error) {
+              console.error('Failed to complete session:', error);
+              Alert.alert('Error', 'Failed to mark session as complete. Please try again.');
+            } finally {
+              setIsLoading(false);
+            }
           },
         },
       ]
@@ -142,14 +194,29 @@ const SessionDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const handleMessage = () => {
+    if (!otherUser?.id && !otherUser?._id) {
+      Alert.alert('Error', 'Unable to start chat - user information not available.');
+      return;
+    }
+    
+    // Get the other user's ID (handle both id and _id fields)
+    const otherUserId = otherUser.id || otherUser._id;
+    
     // Generate consistent chat ID
-    const sortedIds = [user?.id, otherUser.id].sort();
+    const sortedIds = [user?.id, otherUserId].sort();
     const chatId = `${sortedIds[0]}-${sortedIds[1]}`;
     
-    // SessionDetails is in CalendarStack which doesn't have Chat screens
-    // For now, just log - in a real app you'd navigate to Messages tab
-    console.log('Navigate to chat:', { chatId, otherUserId: otherUser.id });
-    // TODO: Implement navigation to Messages tab
+    // Navigate to Messages tab and then to chat
+    try {
+      (navigation as any).navigate('Messages', {
+        screen: 'MessageChat',
+        params: { chatId, otherUserId }
+      });
+    } catch (error) {
+      console.log('Navigation to Messages tab failed:', error);
+      // Fallback navigation
+      Alert.alert('Navigation Error', 'Unable to open chat. Please try again.');
+    }
   };
 
   return (
@@ -178,15 +245,20 @@ const SessionDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
             </Title>
             <View style={styles.userInfo}>
               <View style={styles.userDetails}>
-                <Text style={styles.userName}>{otherUser.name}</Text>
+                <Text style={styles.userName}>
+                  {otherUser?.name || 'Unknown User'}
+                </Text>
                 <View style={styles.ratingContainer}>
-                  <Text style={styles.rating}>⭐ {otherUser.rating}</Text>
+                  <Text style={styles.rating}>
+                    ⭐ {otherUser?.rating ? otherUser.rating.toFixed(1) : 'No rating'}
+                  </Text>
                 </View>
               </View>
               <Button
                 mode="outlined"
                 onPress={handleMessage}
                 compact
+                disabled={isLoading}
               >
                 Message
               </Button>
@@ -202,7 +274,7 @@ const SessionDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
             <View style={styles.detailRow}>
               <Text style={styles.label}>Date & Time:</Text>
               <Text style={styles.value}>
-                {session.scheduledAt.toLocaleDateString()} at {session.scheduledAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date(session.scheduledAt).toLocaleDateString()} at {new Date(session.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Text>
             </View>
 
@@ -217,6 +289,18 @@ const SessionDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                 You are the {isTeacher ? 'Teacher' : 'Student'}
               </Text>
             </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.label}>Skill:</Text>
+              <Text style={styles.value}>{skillName}</Text>
+            </View>
+
+            {skillInfo?.category && (
+              <View style={styles.detailRow}>
+                <Text style={styles.label}>Category:</Text>
+                <Text style={styles.value}>{skillInfo.category}</Text>
+              </View>
+            )}
 
             {session.notes && (
               <>
@@ -239,6 +323,8 @@ const SessionDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                   mode="contained"
                   onPress={handleConfirm}
                   style={styles.actionButton}
+                  loading={isLoading}
+                  disabled={isLoading}
                 >
                   Confirm Session
                 </Button>
@@ -246,6 +332,8 @@ const SessionDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                   mode="outlined"
                   onPress={handleCancel}
                   style={styles.actionButton}
+                  loading={isLoading}
+                  disabled={isLoading}
                 >
                   Cancel Session
                 </Button>
@@ -258,6 +346,8 @@ const SessionDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                   mode="contained"
                   onPress={handleComplete}
                   style={styles.actionButton}
+                  loading={isLoading}
+                  disabled={isLoading}
                 >
                   Mark as Complete
                 </Button>
@@ -265,6 +355,8 @@ const SessionDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                   mode="outlined"
                   onPress={handleCancel}
                   style={styles.actionButton}
+                  loading={isLoading}
+                  disabled={isLoading}
                 >
                   Cancel Session
                 </Button>

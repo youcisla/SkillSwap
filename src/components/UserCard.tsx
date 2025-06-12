@@ -7,6 +7,10 @@ interface UserCardProps {
   user: UserProfile;
   onPress?: () => void;
   onMessage?: () => void;
+  onFollow?: () => void;
+  onUnfollow?: () => void;
+  isFollowing?: boolean;
+  showFollowButton?: boolean;
   showSkills?: boolean;
   style?: ViewStyle;
 }
@@ -15,6 +19,10 @@ const UserCard: React.FC<UserCardProps> = ({
   user,
   onPress,
   onMessage,
+  onFollow,
+  onUnfollow,
+  isFollowing = false,
+  showFollowButton = false,
   showSkills = true,
   style
 }) => {
@@ -35,6 +43,22 @@ const UserCard: React.FC<UserCardProps> = ({
               <View style={styles.ratingContainer}>
                 <Paragraph style={styles.rating}>⭐ {user.rating.toFixed(1)}</Paragraph>
                 <Paragraph style={styles.sessions}>({user.totalSessions} sessions)</Paragraph>
+              </View>
+            )}
+            
+            {/* Show follower counts if available */}
+            {(user.followersCount || user.followingCount) && (
+              <View style={styles.followStatsContainer}>
+                {user.followersCount > 0 && (
+                  <Paragraph style={styles.followStat}>
+                    {user.followersCount} followers
+                  </Paragraph>
+                )}
+                {user.followingCount > 0 && (
+                  <Paragraph style={styles.followStat}>
+                    {user.followingCount} following
+                  </Paragraph>
+                )}
               </View>
             )}
           </View>
@@ -96,16 +120,30 @@ const UserCard: React.FC<UserCardProps> = ({
           </>
         )}
 
-        {onMessage && (
+        {(onMessage || showFollowButton) && (
           <View style={styles.actions}>
-            <Button
-              mode="contained"
-              onPress={onMessage}
-              style={styles.messageButton}
-              icon="message"
-            >
-              Message
-            </Button>
+            {showFollowButton && (
+              <Button
+                mode={isFollowing ? "outlined" : "contained"}
+                onPress={isFollowing ? onUnfollow : onFollow}
+                style={[styles.actionButton, styles.followButton]}
+                icon={isFollowing ? "account-minus" : "account-plus"}
+                buttonColor={isFollowing ? undefined : "#6200ea"}
+                textColor={isFollowing ? "#6200ea" : undefined}
+              >
+                {isFollowing ? "Unfollow" : "Follow"}
+              </Button>
+            )}
+            {onMessage && (
+              <Button
+                mode="contained"
+                onPress={onMessage}
+                style={[styles.actionButton, styles.messageButton]}
+                icon="message"
+              >
+                Message
+              </Button>
+            )}
           </View>
         )}
       </Card.Content>
@@ -154,6 +192,15 @@ const styles = StyleSheet.create({
     color: '#999',
     marginLeft: 8,
   },
+  followStatsContainer: {
+    flexDirection: 'row',
+    marginTop: 4,
+    gap: 12,
+  },
+  followStat: {
+    fontSize: 12,
+    color: '#666',
+  },
   bio: {
     fontSize: 14,
     color: '#666',
@@ -201,6 +248,14 @@ const styles = StyleSheet.create({
     marginTop: 12,
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    gap: 8,
+  },
+  actionButton: {
+    borderRadius: 20,
+    minWidth: 80,
+  },
+  followButton: {
+    minWidth: 100,
   },
   messageButton: {
     borderRadius: 20,

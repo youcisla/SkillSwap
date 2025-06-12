@@ -16,6 +16,8 @@ export interface UserProfile extends User {
   bio?: string;
   rating?: number;
   totalSessions?: number;
+  followersCount?: number;
+  followingCount?: number;
 }
 
 // Skill-related types
@@ -84,6 +86,7 @@ export interface Message {
   content: string;
   timestamp: Date;
   isRead: boolean;
+  chatId?: string;
   sessionId?: string;
 }
 
@@ -138,6 +141,8 @@ export type RootStackParamList = {
   MatchesMain: undefined;
   Messages: undefined;
   MessagesMain: undefined;
+  Followers: { userId: string };
+  Following: { userId: string };
 };
 
 export type TabParamList = {
@@ -172,6 +177,8 @@ export type ProfileStackParamList = {
   EditProfile: undefined;
   SkillManagement: undefined;
   AddSkill: { type: 'teach' | 'learn' };
+  Followers: { userId: string };
+  Following: { userId: string };
 };
 
 export type CalendarStackParamList = {
@@ -222,6 +229,7 @@ export interface RootState {
   sessions: SessionState;
   messages: MessageState;
   matches: MatchState;
+  follows: FollowState;
 }
 
 export interface AuthState {
@@ -261,6 +269,35 @@ export interface MessageState {
 
 export interface MatchState {
   matches: Match[];
+  loading: boolean;
+  error: string | null;
+}
+
+// Follow types
+export interface Follow {
+  id: string;
+  followerId: string;
+  followingId: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface FollowUser extends UserProfile {
+  followedAt: Date;
+}
+
+export interface FollowStats {
+  followersCount: number;
+  followingCount: number;
+}
+
+export interface FollowState {
+  followers: FollowUser[];
+  following: FollowUser[];
+  mutualFollows: UserProfile[];
+  followStats: FollowStats | null;
+  isFollowing: { [userId: string]: boolean };
   loading: boolean;
   error: string | null;
 }

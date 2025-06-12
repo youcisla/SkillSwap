@@ -54,6 +54,31 @@ export const fetchSessionById = createAsyncThunk(
   }
 );
 
+export const cancelSession = createAsyncThunk(
+  'sessions/cancelSession',
+  async ({ sessionId, reason }: { sessionId: string; reason?: string }, { rejectWithValue }) => {
+    try {
+      return await sessionService.cancelSession(sessionId, reason);
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const completeSession = createAsyncThunk(
+  'sessions/completeSession',
+  async ({ sessionId, feedback }: { 
+    sessionId: string; 
+    feedback?: { rating: number; comment: string; } 
+  }, { rejectWithValue }) => {
+    try {
+      return await sessionService.completeSession(sessionId, feedback);
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const sessionSlice = createSlice({
   name: 'sessions',
   initialState,
@@ -111,6 +136,26 @@ const sessionSlice = createSlice({
       // Fetch session by ID
       .addCase(fetchSessionById.fulfilled, (state, action: PayloadAction<Session>) => {
         state.currentSession = action.payload;
+      })
+      // Cancel session
+      .addCase(cancelSession.fulfilled, (state, action: PayloadAction<Session>) => {
+        const index = state.sessions.findIndex(s => s.id === action.payload.id);
+        if (index !== -1) {
+          state.sessions[index] = action.payload;
+        }
+        if (state.currentSession?.id === action.payload.id) {
+          state.currentSession = action.payload;
+        }
+      })
+      // Complete session
+      .addCase(completeSession.fulfilled, (state, action: PayloadAction<Session>) => {
+        const index = state.sessions.findIndex(s => s.id === action.payload.id);
+        if (index !== -1) {
+          state.sessions[index] = action.payload;
+        }
+        if (state.currentSession?.id === action.payload.id) {
+          state.currentSession = action.payload;
+        }
       });
   },
 });

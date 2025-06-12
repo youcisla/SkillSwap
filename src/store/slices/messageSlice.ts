@@ -65,6 +65,17 @@ export const createChat = createAsyncThunk(
   }
 );
 
+export const findOrCreateChat = createAsyncThunk(
+  'messages/findOrCreateChat',
+  async (participants: string[], { rejectWithValue }) => {
+    try {
+      return await messageService.findOrCreateChat(participants);
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const messageSlice = createSlice({
   name: 'messages',
   initialState,
@@ -139,6 +150,13 @@ const messageSlice = createSlice({
       // Create chat
       .addCase(createChat.fulfilled, (state, action: PayloadAction<Chat>) => {
         state.chats.push(action.payload);
+      })
+      // Find or create chat
+      .addCase(findOrCreateChat.fulfilled, (state, action: PayloadAction<Chat>) => {
+        const existingChatIndex = state.chats.findIndex(chat => chat.id === action.payload.id);
+        if (existingChatIndex === -1) {
+          state.chats.push(action.payload);
+        }
       })
       // Mark as read
       .addCase(markAsRead.fulfilled, (state, action: PayloadAction<{ chatId: string; messageIds: string[] }>) => {
