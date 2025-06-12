@@ -131,24 +131,26 @@ router.get('/:chatId/messages', auth, async (req, res) => {
 router.post('/create', auth, async (req, res) => {
   try {
     const { otherUserId } = req.body;
-    
+
     if (!otherUserId) {
       return res.status(400).json({ error: 'Other user ID is required' });
     }
 
+    // Generate consistent chat ID using the static method
+    const chatId = Chat.generateChatId(req.userId, otherUserId);
+
     // Check if chat already exists
-    let chat = await Chat.findOne({
-      participants: { $all: [req.userId, otherUserId] }
-    })
-    .populate('participants', 'name email profileImage')
-    .populate('lastMessage');
+    let chat = await Chat.findById(chatId)
+      .populate('participants', 'name email profileImage')
+      .populate('lastMessage');
 
     if (chat) {
       return res.json(chat);
     }
 
-    // Create new chat
+    // Create new chat with consistent ID
     chat = new Chat({
+      _id: chatId,
       participants: [req.userId, otherUserId]
     });
     

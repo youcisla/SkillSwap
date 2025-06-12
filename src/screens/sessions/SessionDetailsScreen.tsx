@@ -2,19 +2,19 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    Button,
-    Card,
-    Chip,
-    Divider,
-    Paragraph,
-    Text,
-    Title
+  Button,
+  Card,
+  Chip,
+  Divider,
+  Paragraph,
+  Text,
+  Title
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { RootStackParamList, Session, SessionStatus } from '../../types';
@@ -142,9 +142,13 @@ const SessionDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const handleMessage = () => {
+    // Generate consistent chat ID
+    const sortedIds = [user?.id, otherUser.id].sort();
+    const chatId = `${sortedIds[0]}-${sortedIds[1]}`;
+    
     // SessionDetails is in CalendarStack which doesn't have Chat screens
     // For now, just log - in a real app you'd navigate to Messages tab
-    console.log('Navigate to chat:', { chatId: `${user?.id}-${otherUser.id}`, otherUserId: otherUser.id });
+    console.log('Navigate to chat:', { chatId, otherUserId: otherUser.id });
     // TODO: Implement navigation to Messages tab
   };
 

@@ -83,26 +83,30 @@ const ProfileScreen: React.FC = () => {
 
   const handleStartChat = () => {
     if (userId && userId !== user?.id) {
+      // Generate consistent chat ID
+      const sortedIds = [user?.id, userId].sort();
+      const chatId = `${sortedIds[0]}-${sortedIds[1]}`;
+      
       // Try to determine which chat screen to navigate to based on the current stack
       // This is a simplified approach - in a real app you might use a more sophisticated method
       try {
         // Try HomeChat first (most common case)
         (navigation as any).navigate('HomeChat', { 
-          chatId: `${user?.id}-${userId}`, 
+          chatId, 
           otherUserId: userId 
         });
       } catch (error) {
         try {
           // Try MatchChat if HomeChat doesn't work
           (navigation as any).navigate('MatchChat', { 
-            chatId: `${user?.id}-${userId}`, 
+            chatId, 
             otherUserId: userId 
           });
         } catch (error2) {
           try {
             // Try MessageChat as last resort
             (navigation as any).navigate('MessageChat', { 
-              chatId: `${user?.id}-${userId}`, 
+              chatId, 
               otherUserId: userId 
             });
           } catch (error3) {

@@ -46,20 +46,20 @@ router.post('/', auth, async (req, res) => {
     let actualChatId = chatId;
     
     if (!chatId && senderId && receiverId) {
+      // Generate consistent chat ID using the Chat model's static method
+      actualChatId = Chat.generateChatId(senderId, receiverId);
+      
       // Find or create chat between sender and receiver
-      let chat = await Chat.findOne({
-        participants: { $all: [senderId, receiverId], $size: 2 }
-      });
+      let chat = await Chat.findById(actualChatId);
 
       if (!chat) {
-        // Create new chat
+        // Create new chat with the generated ID
         chat = new Chat({
+          _id: actualChatId,
           participants: [senderId, receiverId]
         });
         await chat.save();
       }
-      
-      actualChatId = chat._id;
     }
 
     if (!actualChatId || !content) {

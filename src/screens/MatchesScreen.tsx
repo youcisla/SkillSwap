@@ -154,8 +154,9 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleStartChat = async (matchId: string, otherUserId: string) => {
-    // Create or find existing chat
-    const chatId = `${user?.id}_${otherUserId}`;
+    // Create or find existing chat with consistent ID format
+    const sortedIds = [user?.id, otherUserId].sort();
+    const chatId = `${sortedIds[0]}-${sortedIds[1]}`;
     try {
       navigation.navigate('MatchChat', { chatId, otherUserId });
     } catch (error) {

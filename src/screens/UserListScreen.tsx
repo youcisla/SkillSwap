@@ -231,10 +231,14 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
             </Button>
             <Button
               mode="contained"
-              onPress={() => navigation.navigate('HomeChat', { 
-                chatId: `${user?.id}-${userProfile.id}`, 
-                otherUserId: userProfile.id 
-              })}
+              onPress={() => {
+                const sortedIds = [user?.id, userProfile.id].sort();
+                const chatId = `${sortedIds[0]}-${sortedIds[1]}`;
+                navigation.navigate('HomeChat', { 
+                  chatId, 
+                  otherUserId: userProfile.id 
+                });
+              }}
               style={styles.actionButton}
             >
               Message
