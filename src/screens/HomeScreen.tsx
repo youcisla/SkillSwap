@@ -9,7 +9,6 @@ import {
   View
 } from 'react-native';
 import {
-  Avatar,
   Button,
   Card,
   Chip,
@@ -19,6 +18,7 @@ import {
   Text,
   Title
 } from 'react-native-paper';
+import SafeAvatar from '../components/SafeAvatar';
 import { useAppDispatch, useAppSelector } from '../store';
 import { fetchMatches } from '../store/slices/matchSlice';
 import { fetchUserSkills } from '../store/slices/skillSlice';
@@ -92,9 +92,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         <Card style={styles.welcomeCard}>
           <Card.Content>
             <View style={styles.welcomeHeader}>
-              <Avatar.Image 
+              <SafeAvatar 
                 size={50} 
-                source={{ uri: currentUser?.profileImage || `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50"><rect width="50" height="50" fill="#6200ea"/><text x="50%" y="50%" text-anchor="middle" dy="0.35em" fill="white" font-size="24" font-family="Arial">${(currentUser?.name || user?.name || 'U').charAt(0).toUpperCase()}</text></svg>`)}` }}
+                source={{ uri: currentUser?.profileImage }}
+                fallbackText={currentUser?.name || user?.name || 'U'}
               />
               <View style={styles.welcomeText}>
                 <Title>Welcome back, {currentUser?.name || user?.name}!</Title>
