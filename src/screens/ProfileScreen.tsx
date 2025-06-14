@@ -2,27 +2,30 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect } from 'react';
 import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  View,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    View,
 } from 'react-native';
 import {
-  Avatar,
-  Button,
-  Card,
-  Chip,
-  Divider,
-  IconButton,
-  Paragraph,
-  Text,
-  Title,
+    Avatar,
+    Card,
+    Chip,
+    Divider,
+    IconButton,
+    Paragraph,
+    Text,
+    Title
 } from 'react-native-paper';
+import EnhancedButton from '../components/ui/EnhancedButton';
+import { StatCard } from '../components/ui/EnhancedCard';
+import LoadingState, { EmptyState } from '../components/ui/LoadingState';
 import { useAppDispatch, useAppSelector } from '../store';
 import { logout } from '../store/slices/authSlice';
 import { checkFollowStatus, fetchFollowStats, followUser, unfollowUser } from '../store/slices/followSlice';
 import { fetchUserSkills } from '../store/slices/skillSlice';
 import { fetchUserProfile } from '../store/slices/userSlice';
+import { colors, spacing } from '../theme';
 import { HomeStackParamList, MatchesStackParamList, ProfileStackParamList } from '../types';
 
 // Type for navigation that can work with multiple stacks
@@ -146,10 +149,18 @@ const ProfileScreen: React.FC = () => {
     }
   };
 
+  if (loading && !profileUser) {
+    return <LoadingState fullScreen text="Loading profile..." />;
+  }
+
   if (!profileUser) {
     return (
       <View style={styles.centerContainer}>
-        <Text>User not found</Text>
+        <EmptyState
+          icon="account-question"
+          title="User not found"
+          description="This user profile could not be loaded."
+        />
       </View>
     );
   }
@@ -175,28 +186,18 @@ const ProfileScreen: React.FC = () => {
               
               {/* Follow Stats */}
               <View style={styles.followStats}>
-                <Button
-                  mode="text"
+                <StatCard
+                  title="Followers"
+                  value={followStats?.followersCount || profileUser.followersCount || 0}
                   onPress={handleFollowersPress}
-                  style={styles.statButton}
-                  labelStyle={styles.statButtonLabel}
-                >
-                  <Text style={styles.statNumber}>
-                    {followStats?.followersCount || profileUser.followersCount || 0}
-                  </Text>{' '}
-                  Followers
-                </Button>
-                <Button
-                  mode="text"
+                  style={styles.statCard}
+                />
+                <StatCard
+                  title="Following"
+                  value={followStats?.followingCount || profileUser.followingCount || 0}
                   onPress={handleFollowingPress}
-                  style={styles.statButton}
-                  labelStyle={styles.statButtonLabel}
-                >
-                  <Text style={styles.statNumber}>
-                    {followStats?.followingCount || profileUser.followingCount || 0}
-                  </Text>{' '}
-                  Following
-                </Button>
+                  style={styles.statCard}
+                />
               </View>
             </View>
             
@@ -209,16 +210,13 @@ const ProfileScreen: React.FC = () => {
                 />
               ) : (
                 <View style={styles.otherUserActions}>
-                  <Button
-                    mode={userId && isFollowing[userId] ? "outlined" : "contained"}
+                  <EnhancedButton
+                    title={userId && isFollowing[userId] ? "Unfollow" : "Follow"}
+                    variant={userId && isFollowing[userId] ? "outline" : "primary"}
                     onPress={handleFollowToggle}
                     style={styles.followButton}
-                    icon={userId && isFollowing[userId] ? "account-minus" : "account-plus"}
-                    buttonColor={userId && isFollowing[userId] ? undefined : "#6200ea"}
-                    textColor={userId && isFollowing[userId] ? "#6200ea" : undefined}
-                  >
-                    {userId && isFollowing[userId] ? "Unfollow" : "Follow"}
-                  </Button>
+                    hapticFeedback
+                  />
                   <IconButton
                     icon="message"
                     onPress={handleStartChat}
@@ -260,7 +258,11 @@ const ProfileScreen: React.FC = () => {
               ))}
             </View>
           ) : (
-            <Paragraph>No skills to teach added yet.</Paragraph>
+            <EmptyState
+              icon="school"
+              title="No teaching skills yet"
+              description={isOwnProfile ? "Add skills you can teach to help others learn!" : "This user hasn't added any teaching skills yet."}
+            />
           )}
         </Card.Content>
       </Card>
@@ -287,7 +289,11 @@ const ProfileScreen: React.FC = () => {
               ))}
             </View>
           ) : (
-            <Paragraph>No skills to learn added yet.</Paragraph>
+            <EmptyState
+              icon="lightbulb-outline"
+              title="No learning goals yet"
+              description={isOwnProfile ? "Add skills you want to learn from others!" : "This user hasn't added any learning goals yet."}
+            />
           )}
         </Card.Content>
       </Card>
@@ -297,31 +303,44 @@ const ProfileScreen: React.FC = () => {
         <Card style={styles.actionsCard}>
           <Card.Content>
             <Title>Account</Title>
-            <Button
-              mode="outlined"
+            <EnhancedButton
+              title="Manage Skills"
+              variant="outline"
               onPress={() => (navigation as any).navigate('SkillManagement')}
               style={styles.actionButton}
               icon="cog"
-            >
-              Manage Skills
-            </Button>
-            <Button
-              mode="outlined"
+              hapticFeedback
+            />
+            <EnhancedButton
+              title="Edit Profile"
+              variant="outline"
               onPress={() => (navigation as any).navigate('EditProfile')}
               style={styles.actionButton}
               icon="account-edit"
-            >
-              Edit Profile
-            </Button>
+              hapticFeedback
+            />
+            
+            {/* Admin Panel Access - Only for admins */}
+            {(user?.role === 'admin' || user?.role === 'super-admin') && (
+              <EnhancedButton
+                title="Admin Dashboard"
+                variant="primary"
+                onPress={() => (navigation as any).navigate('AdminDashboard')}
+                style={styles.actionButton}
+                icon="shield-account"
+                hapticFeedback
+              />
+            )}
+            
             <Divider style={styles.divider} />
-            <Button
-              mode="outlined"
+            <EnhancedButton
+              title="Logout"
+              variant="danger"
               onPress={handleLogout}
-              style={[styles.actionButton, styles.logoutButton]}
+              style={styles.actionButton}
               icon="logout"
-            >
-              Logout
-            </Button>
+              hapticFeedback
+            />
           </Card.Content>
         </Card>
       )}
@@ -330,25 +349,25 @@ const ProfileScreen: React.FC = () => {
       {!isOwnProfile && (
         <Card style={styles.actionsCard}>
           <Card.Content>
-            <Button
-              mode="contained"
+            <EnhancedButton
+              title="Send Message"
+              variant="primary"
               onPress={handleStartChat}
               style={styles.actionButton}
               icon="message"
-            >
-              Send Message
-            </Button>
-            <Button
-              mode="outlined"
+              hapticFeedback
+            />
+            <EnhancedButton
+              title="Request Session"
+              variant="outline"
               onPress={() => {
                 // TODO: Implement session request
                 Alert.alert('Coming Soon', 'Session request feature will be available soon!');
               }}
               style={styles.actionButton}
               icon="calendar-plus"
-            >
-              Request Session
-            </Button>
+              hapticFeedback
+            />
           </Card.Content>
         </Card>
       )}
@@ -359,68 +378,66 @@ const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: spacing.large,
   },
   headerCard: {
-    margin: 16,
-    marginBottom: 8,
+    margin: spacing.medium,
+    marginBottom: spacing.small,
+    borderRadius: 12,
+    elevation: 2,
   },
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   profileInfo: {
-    marginLeft: 16,
+    marginLeft: spacing.medium,
     flex: 1,
   },
   followStats: {
     flexDirection: 'row',
-    marginTop: 8,
-    gap: 16,
+    marginTop: spacing.small,
+    gap: spacing.small,
   },
-  statButton: {
-    minWidth: 0,
-    paddingHorizontal: 0,
-  },
-  statButtonLabel: {
-    fontSize: 12,
-    marginHorizontal: 0,
-  },
-  statNumber: {
-    fontWeight: 'bold',
-    color: '#6200ea',
+  statCard: {
+    flex: 1,
+    marginHorizontal: spacing.xs,
   },
   profileActions: {
     alignItems: 'center',
   },
   otherUserActions: {
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.small,
   },
   followButton: {
     minWidth: 100,
   },
   messageIcon: {
-    backgroundColor: '#6200ea',
+    backgroundColor: colors.primary,
   },
   rating: {
-    color: '#666',
+    color: colors.textSecondary,
     fontSize: 14,
+    marginTop: spacing.xs,
   },
   bioSection: {
-    marginTop: 16,
-    paddingTop: 16,
+    marginTop: spacing.medium,
+    paddingTop: spacing.medium,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: colors.border,
   },
   skillsCard: {
-    margin: 16,
-    marginTop: 8,
+    margin: spacing.medium,
+    marginTop: spacing.small,
+    borderRadius: 12,
+    elevation: 2,
   },
   skillsHeader: {
     flexDirection: 'row',
@@ -430,23 +447,25 @@ const styles = StyleSheet.create({
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 8,
+    marginTop: spacing.small,
+    gap: spacing.xs,
   },
   chip: {
-    margin: 4,
+    marginRight: spacing.xs,
+    marginBottom: spacing.xs,
   },
   actionsCard: {
-    margin: 16,
-    marginTop: 8,
+    margin: spacing.medium,
+    marginTop: spacing.small,
+    borderRadius: 12,
+    elevation: 2,
   },
   actionButton: {
-    marginVertical: 4,
-  },
-  logoutButton: {
-    borderColor: '#f44336',
+    marginVertical: spacing.xs,
   },
   divider: {
-    marginVertical: 16,
+    marginVertical: spacing.medium,
+    backgroundColor: colors.border,
   },
 });
 

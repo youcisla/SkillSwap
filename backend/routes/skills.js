@@ -6,6 +6,16 @@ const auth = require('../middleware/auth');
 
 const router = express.Router();
 
+// Helper function to check if user has admin privileges
+const checkAdminPrivileges = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    return user && (user.role === 'admin' || user.role === 'super-admin');
+  } catch (error) {
+    return false;
+  }
+};
+
 // Get user skills (both teach and learn)
 router.get('/user/:userId', auth, async (req, res) => {
   try {
@@ -56,12 +66,15 @@ router.post('/teach', [
 
     const { name, category, level, description, userId } = req.body;
 
-    // Check if user is adding skill for themselves
+    // Check if user is adding skill for themselves OR has admin privileges
     if (req.userId !== userId) {
-      return res.status(403).json({
-        success: false,
-        error: 'You can only add skills for yourself'
-      });
+      const hasAdminPrivileges = await checkAdminPrivileges(req.userId);
+      if (!hasAdminPrivileges) {
+        return res.status(403).json({
+          success: false,
+          error: 'You can only add skills for yourself'
+        });
+      }
     }
 
     // Check if skill already exists for this user
@@ -127,12 +140,15 @@ router.post('/learn', [
 
     const { name, category, level, description, userId } = req.body;
 
-    // Check if user is adding skill for themselves
+    // Check if user is adding skill for themselves OR has admin privileges
     if (req.userId !== userId) {
-      return res.status(403).json({
-        success: false,
-        error: 'You can only add skills for yourself'
-      });
+      const hasAdminPrivileges = await checkAdminPrivileges(req.userId);
+      if (!hasAdminPrivileges) {
+        return res.status(403).json({
+          success: false,
+          error: 'You can only add skills for yourself'
+        });
+      }
     }
 
     // Check if skill already exists for this user
@@ -191,12 +207,15 @@ router.put('/:skillId', auth, async (req, res) => {
       });
     }
 
-    // Check if user owns this skill
+    // Check if user owns this skill OR has admin privileges
     if (skill.userId.toString() !== req.userId) {
-      return res.status(403).json({
-        success: false,
-        error: 'You can only update your own skills'
-      });
+      const hasAdminPrivileges = await checkAdminPrivileges(req.userId);
+      if (!hasAdminPrivileges) {
+        return res.status(403).json({
+          success: false,
+          error: 'You can only update your own skills'
+        });
+      }
     }
 
     const updates = req.body;

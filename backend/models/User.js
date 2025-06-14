@@ -82,7 +82,26 @@ const userSchema = new mongoose.Schema({
   lastActive: {
     type: Date,
     default: Date.now
-  }
+  },
+  role: {
+    type: String,
+    enum: ['user', 'admin', 'super-admin'],
+    default: 'user'
+  },
+  permissions: [{
+    type: String,
+    enum: [
+      'manage_users',
+      'manage_skills', 
+      'manage_sessions',
+      'manage_matches',
+      'manage_chats',
+      'manage_content',
+      'view_analytics',
+      'system_settings',
+      'bulk_actions'
+    ]
+  }]
 }, {
   timestamps: true
 });

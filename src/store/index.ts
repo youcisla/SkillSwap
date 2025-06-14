@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
+import adminSlice from './slices/adminSlice';
 import authSlice from './slices/authSlice';
 import followSlice from './slices/followSlice';
 import matchSlice from './slices/matchSlice';
@@ -17,6 +18,7 @@ export const store = configureStore({
     messages: messageSlice,
     matches: matchSlice,
     follows: followSlice,
+    admin: adminSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

@@ -95,6 +95,7 @@ const sessionRoutes = require('./routes/sessions');
 const chatRoutes = require('./routes/chats');
 const messageRoutes = require('./routes/messages');
 const followRoutes = require('./routes/follows');
+const adminRoutes = require('./routes/admin');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -105,6 +106,7 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/follows', followRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Socket.io for real-time messaging
 io.on('connection', (socket) => {

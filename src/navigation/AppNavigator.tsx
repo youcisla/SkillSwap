@@ -7,6 +7,9 @@ import { checkAuthStatus } from '../store/slices/authSlice';
 import { RootStackParamList } from '../types';
 
 // Import screens
+import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
+import ContentModerationScreen from '../screens/admin/ContentModerationScreen';
+import SystemSettingsScreen from '../screens/admin/SystemSettingsScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
@@ -65,8 +68,7 @@ const AppNavigator: React.FC = () => {
               component={EditProfileScreen}
               options={{ 
                 headerShown: true,
-                title: 'Edit Profile',
-                headerBackTitleVisible: false 
+                title: 'Edit Profile'
               }}
             />
             <Stack.Screen 
@@ -74,8 +76,7 @@ const AppNavigator: React.FC = () => {
               component={SkillManagementScreen}
               options={{ 
                 headerShown: true,
-                title: 'Manage Skills',
-                headerBackTitleVisible: false 
+                title: 'Manage Skills'
               }}
             />
             <Stack.Screen 
@@ -83,8 +84,31 @@ const AppNavigator: React.FC = () => {
               component={AddSkillScreen}
               options={{ 
                 headerShown: true,
-                title: 'Add Skill',
-                headerBackTitleVisible: false 
+                title: 'Add Skill'
+              }}
+            />
+            <Stack.Screen 
+              name="AdminDashboard" 
+              component={AdminDashboardScreen}
+              options={{ 
+                headerShown: true,
+                title: 'Admin Dashboard'
+              }}
+            />
+            <Stack.Screen 
+              name="ContentModeration" 
+              component={ContentModerationScreen}
+              options={{ 
+                headerShown: true,
+                title: 'Content Moderation'
+              }}
+            />
+            <Stack.Screen 
+              name="SystemSettings" 
+              component={SystemSettingsScreen}
+              options={{ 
+                headerShown: true,
+                title: 'System Settings'
               }}
             />
           </>

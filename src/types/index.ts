@@ -5,6 +5,8 @@ export interface User {
   name: string;
   city: string;
   profileImage?: string;
+  role?: 'user' | 'admin' | 'super-admin';
+  permissions?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -129,6 +131,9 @@ export type RootStackParamList = {
   EditProfile: undefined;
   SkillManagement: undefined;
   AddSkill: { type: 'teach' | 'learn' };
+  AdminDashboard: undefined;
+  ContentModeration: undefined;
+  SystemSettings: undefined;
   UserList: { skillId?: string };
   Chat: { chatId: string; otherUserId: string };
   MatchChat: { chatId: string; otherUserId: string };

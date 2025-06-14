@@ -6,6 +6,16 @@ const auth = require('../middleware/auth');
 
 const router = express.Router();
 
+// Helper function to check if user has admin privileges
+const checkAdminPrivileges = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    return user && (user.role === 'admin' || user.role === 'super-admin');
+  } catch (error) {
+    return false;
+  }
+};
+
 // Search users
 router.get('/search', auth, async (req, res) => {
   try {
@@ -267,10 +277,14 @@ router.put('/:userId', [
 
     // Check if user is updating their own profile
     if (req.userId !== req.params.userId) {
-      return res.status(403).json({
-        success: false,
-        error: 'You can only update your own profile'
-      });
+      // Check admin privileges
+      const isAdmin = await checkAdminPrivileges(req.userId);
+      if (!isAdmin) {
+        return res.status(403).json({
+          success: false,
+          error: 'You can only update your own profile'
+        });
+      }
     }
 
     const updates = req.body;
