@@ -96,7 +96,7 @@ const SessionCard: React.FC<SessionCardProps> = ({
           
           <Avatar.Icon
             size={48}
-            icon={isTeacher ? 'school' : 'account-student'}
+            icon={isTeacher ? 'account-voice' : 'account-student'}
             style={[styles.roleIcon, { backgroundColor: isTeacher ? '#4caf50' : '#2196f3' }]}
           />
         </View>

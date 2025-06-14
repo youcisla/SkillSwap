@@ -3,22 +3,24 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  Image,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import {
-  Avatar,
-  Button,
-  Card,
-  Snackbar,
-  Text,
-  TextInput,
-  Title,
+    Avatar,
+    Button,
+    Card,
+    Snackbar,
+    Text,
+    TextInput,
+    Title
 } from 'react-native-paper';
+import SafeAvatar from '../../components/SafeAvatar';
+import { userService } from '../../services/userService';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { updateUserProfile } from '../../store/slices/userSlice';
 import { ProfileForm, RootStackParamList } from '../../types';
@@ -40,6 +42,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     name: '',
     city: '',
     bio: '',
+    profileImage: '',
   });
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
@@ -51,6 +54,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         name: currentUser.name,
         city: currentUser.city,
         bio: currentUser.bio || '',
+        profileImage: currentUser.profileImage || '',
       });
       setProfileImage(currentUser.profileImage || null);
     }
@@ -131,9 +135,24 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
+      // First, upload the profile image if it was changed
+      let updatedForm = { ...form };
+      if (profileImage && profileImage !== currentUser?.profileImage) {
+        try {
+          const imageUrl = await userService.uploadProfileImage(user.id, profileImage);
+          updatedForm = { ...form, profileImage: imageUrl };
+        } catch (imageError) {
+          console.error('Failed to upload profile image:', imageError);
+          setSnackbarMessage('Failed to upload profile image');
+          setSnackbarVisible(true);
+          return;
+        }
+      }
+
+      // Then update the profile with all data including the new image URL
       await dispatch(updateUserProfile({ 
         userId: user.id, 
-        data: form 
+        data: updatedForm 
       })).unwrap();
       
       setSnackbarMessage('Profile updated successfully');
@@ -145,6 +164,8 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
       }, 1500);
     } catch (error) {
       console.error('Failed to update profile:', error);
+      setSnackbarMessage('Failed to update profile');
+      setSnackbarVisible(true);
     }
   };
 
@@ -162,7 +183,12 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
                 {profileImage ? (
                   <Image source={{ uri: profileImage }} style={styles.avatar} />
                 ) : (
-                  <Avatar.Icon size={120} icon="account" style={styles.avatar} />
+                  <SafeAvatar 
+                    size={120} 
+                    source={currentUser?.profileImage ? { uri: currentUser.profileImage } : undefined}
+                    fallbackText={currentUser?.name || 'U'}
+                    style={styles.avatar} 
+                  />
                 )}
                 <View style={styles.cameraIconContainer}>
                   <Avatar.Icon size={32} icon="camera" style={styles.cameraIcon} />

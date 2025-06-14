@@ -1,18 +1,19 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  View,
+    FlatList,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    View,
 } from 'react-native';
 import {
-  Avatar,
-  Card,
-  Text,
-  TextInput
+    Card,
+    Text,
+    TextInput
 } from 'react-native-paper';
+import SafeAvatar from '../../components/SafeAvatar';
+import { socketService } from '../../services/socketService';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchMessages, findOrCreateChat, markAsRead, sendMessage } from '../../store/slices/messageSlice';
 import { fetchUserProfile } from '../../store/slices/userSlice';
@@ -75,6 +76,9 @@ const ChatScreen: React.FC = () => {
           setActualChatId(resultChatId);
           debugLog('Using chat ID', resultChatId);
           
+          // Join the chat room for real-time updates
+          socketService.joinChat(resultChatId);
+          
           // Then fetch messages for the chat
           debugLog('Fetching messages for chat', resultChatId);
           await dispatch(fetchMessages(resultChatId));
@@ -89,6 +93,13 @@ const ChatScreen: React.FC = () => {
     };
 
     initializeChat();
+
+    // Cleanup: leave chat when component unmounts or chat changes
+    return () => {
+      if (actualChatId) {
+        socketService.leaveChat(actualChatId);
+      }
+    };
   }, [chatId, otherUserId, user?.id]);
 
   useEffect(() => {
@@ -124,6 +135,15 @@ const ChatScreen: React.FC = () => {
         content: messageText.trim(),
         chatId: actualChatId,
       })).unwrap();
+      
+      // Also emit via socket for real-time delivery
+      socketService.sendMessage({
+        chatId: actualChatId,
+        senderId: user.id,
+        receiverId: otherUserId,
+        content: messageText.trim(),
+        timestamp: new Date().toISOString(),
+      });
       
       setMessageText('');
       debugLog('Message sent successfully');
@@ -182,9 +202,11 @@ const ChatScreen: React.FC = () => {
     >
       {/* Header */}
       <View style={styles.header}>
-        <Avatar.Image 
+        <SafeAvatar 
           size={40}
-          source={{ uri: otherUser?.profileImage || `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="#6200ea"/><text x="50%" y="50%" text-anchor="middle" dy="0.35em" fill="white" font-size="18" font-family="Arial">${(otherUser?.name || 'U').charAt(0).toUpperCase()}</text></svg>`)}` }}
+          source={otherUser?.profileImage ? { uri: otherUser.profileImage } : undefined}
+          fallbackText={otherUser?.name || 'U'}
+          style={styles.headerAvatar}
         />
         <View style={styles.headerInfo}>
           <Text style={styles.headerName}>{otherUser?.name || 'Unknown User'}</Text>
@@ -244,6 +266,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
     elevation: 2,
+  },
+  headerAvatar: {
+    borderRadius: 20,
   },
   headerInfo: {
     marginLeft: 12,

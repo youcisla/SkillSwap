@@ -13,6 +13,59 @@ Notifications.setNotificationHandler({
 });
 
 class NotificationService {
+  private isInitialized = false;
+
+  async initialize(): Promise<void> {
+    if (this.isInitialized) {
+      console.log('📱 Notifications already initialized');
+      return;
+    }
+
+    try {
+      // Register for push notifications
+      const token = await this.registerForPushNotifications();
+      if (token) {
+        console.log('📱 Push notification token:', token);
+      }
+
+      // Set up notification listeners
+      this.setupNotificationListeners();
+
+      this.isInitialized = true;
+      console.log('✅ Notification service initialized');
+    } catch (error) {
+      console.error('❌ Failed to initialize notifications:', error);
+      throw error;
+    }
+  }
+
+  private setupNotificationListeners(): void {
+    // Handle notification received while app is in foreground
+    Notifications.addNotificationReceivedListener((notification) => {
+      console.log('📨 Notification received in foreground:', notification);
+    });
+
+    // Handle notification tapped/clicked
+    Notifications.addNotificationResponseReceivedListener((response) => {
+      console.log('👆 Notification tapped:', response);
+      
+      const data = response.notification.request.content.data;
+      
+      // Handle different notification types
+      if (data?.type === 'new-message' && data?.chatId) {
+        // Navigate to chat screen
+        // This would need to be implemented with proper navigation
+        console.log('🔄 Should navigate to chat:', data.chatId);
+      } else if (data?.type === 'new-match' && data?.matchId) {
+        // Navigate to matches screen
+        console.log('🔄 Should navigate to match:', data.matchId);
+      } else if (data?.type === 'new-follower' && data?.userId) {
+        // Navigate to followers screen
+        console.log('🔄 Should navigate to follower:', data.userId);
+      }
+    });
+  }
+
   async registerForPushNotifications(): Promise<string | null> {
     try {
       if (Platform.OS === 'android') {

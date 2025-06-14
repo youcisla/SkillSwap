@@ -140,6 +140,13 @@ export type RootStackParamList = {
   MessageChat: { chatId: string; otherUserId: string };
   ChatList: undefined;
   SessionDetails: { sessionId: string };
+  SessionRequest: { 
+    otherUserId: string; 
+    skillId: string; 
+    skillName: string; 
+    isTeaching: boolean; 
+  };
+  Feedback: { sessionId: string; otherUserName: string };
   Calendar: undefined;
   CalendarMain: undefined;
   Matches: undefined;
@@ -217,6 +224,7 @@ export interface ProfileForm {
   name: string;
   city: string;
   bio: string;
+  profileImage?: string;
 }
 
 export interface SkillForm {

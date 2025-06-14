@@ -329,7 +329,7 @@ const ContentModerationScreen: React.FC = () => {
                     <List.Item
                       title={selectedReport.reportedItem.name}
                       description={selectedReport.reportedItem.category}
-                      left={(props) => <List.Icon {...props} icon="school" />}
+                      left={(props) => <List.Icon {...props} icon="lightbulb" />}
                     />
                   )}
                 </Card.Content>

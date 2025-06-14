@@ -1,6 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     Alert,
     ScrollView,
@@ -12,11 +12,14 @@ import {
     Card,
     Chip,
     Divider,
+    FAB,
     IconButton,
     Paragraph,
     Text,
     Title
 } from 'react-native-paper';
+import { BulkActionsBar, SelectableItem, SelectionHeader } from '../../components/ui/MultiSelection';
+import { useMultiSelection } from '../../hooks/useMultiSelection';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchUserSkills, removeSkill } from '../../store/slices/skillSlice';
 import { RootStackParamList, Skill } from '../../types';
@@ -30,7 +33,22 @@ interface Props {
 const SkillManagementScreen: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const { skills, loading } = useAppSelector((state) => state.skills);  // Fetch user skills when component mounts or when returning from other screens
+  const { skills, loading } = useAppSelector((state) => state.skills);
+  
+  // Multi-selection state
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [activeSection, setActiveSection] = useState<'teach' | 'learn' | null>(null);
+
+  // Multi-selection hooks for different skill types
+  const teachSelection = useMultiSelection<Skill>(
+    (skill) => skill.id,
+    { allowSelectAll: true }
+  );
+
+  const learnSelection = useMultiSelection<Skill>(
+    (skill) => skill.id,
+    { allowSelectAll: true }
+  );  // Fetch user skills when component mounts or when returning from other screens
   useFocusEffect(
     useCallback(() => {
       if (user?.id) {
@@ -75,10 +93,73 @@ const SkillManagementScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const renderSkillCard = (skill: Skill, type: 'teach' | 'learn') => (
-    <Card key={skill.id} style={styles.skillCard}>
-      <Card.Content>
-        <View style={styles.skillHeader}>
+  const handleBulkDelete = async (skillType: 'teach' | 'learn') => {
+    const selection = skillType === 'teach' ? teachSelection : learnSelection;
+    const selectedSkills = skills.filter(s => s.type === skillType && selection.isSelected(s));
+    
+    if (selectedSkills.length === 0) return;
+
+    Alert.alert(
+      'Delete Skills',
+      `Are you sure you want to remove ${selectedSkills.length} skill${selectedSkills.length === 1 ? '' : 's'}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await Promise.all(
+                selectedSkills.map(skill => dispatch(removeSkill(skill.id)).unwrap())
+              );
+              selection.deselectAll();
+              setIsSelectionMode(false);
+              setActiveSection(null);
+            } catch (error) {
+              console.error('Failed to delete skills:', error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleStartSelection = (section: 'teach' | 'learn') => {
+    setIsSelectionMode(true);
+    setActiveSection(section);
+  };
+
+  const handleCancelSelection = () => {
+    teachSelection.deselectAll();
+    learnSelection.deselectAll();
+    setIsSelectionMode(false);
+    setActiveSection(null);
+  };
+
+  const getCurrentSelection = () => {
+    if (activeSection === 'teach') return teachSelection;
+    if (activeSection === 'learn') return learnSelection;
+    return null;
+  };
+
+  const getCurrentSkills = () => {
+    if (activeSection === 'teach') return teachSkills;
+    if (activeSection === 'learn') return learnSkills;
+    return [];
+  };
+
+  const renderSkillCard = (skill: Skill, type: 'teach' | 'learn') => {
+    const selection = type === 'teach' ? teachSelection : learnSelection;
+    const isCurrentSection = activeSection === type;
+    
+    if (isSelectionMode && isCurrentSection) {
+      return (
+        <SelectableItem
+          key={skill.id}
+          isSelected={selection.isSelected(skill)}
+          onToggleSelection={() => selection.toggleSelection(skill)}
+          style={styles.skillCard}
+        >
           <View style={styles.skillInfo}>
             <Title style={styles.skillName}>{skill.name}</Title>
             <View style={styles.skillMeta}>
@@ -95,84 +176,173 @@ const SkillManagementScreen: React.FC<Props> = ({ navigation }) => {
               </Paragraph>
             )}
           </View>
-          <IconButton
-            icon="delete"
-            iconColor="#f44336"
-            onPress={() => handleDeleteSkill(skill.id, skill.name)}
-          />
-        </View>
-      </Card.Content>
-    </Card>
-  );
+        </SelectableItem>
+      );
+    }
+
+    return (
+      <Card key={skill.id} style={styles.skillCard}>
+        <Card.Content>
+          <View style={styles.skillHeader}>
+            <View style={styles.skillInfo}>
+              <Title style={styles.skillName}>{skill.name}</Title>
+              <View style={styles.skillMeta}>
+                <Chip style={styles.categoryChip} compact>
+                  {skill.category}
+                </Chip>
+                <Chip style={styles.levelChip} compact>
+                  {skill.level}
+                </Chip>
+              </View>
+              {skill.description && (
+                <Paragraph style={styles.skillDescription}>
+                  {skill.description}
+                </Paragraph>
+              )}
+            </View>
+            <IconButton
+              icon="delete"
+              iconColor="#f44336"
+              onPress={() => handleDeleteSkill(skill.id, skill.name)}
+            />
+          </View>
+        </Card.Content>
+      </Card>
+    );
+  };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        {/* Skills to Teach */}
-        <Card style={styles.sectionCard}>
-          <Card.Content>
-            <View style={styles.sectionHeader}>
-              <Title style={styles.sectionTitle}>Skills I Can Teach</Title>
-              <Button
-                mode="outlined"
-                onPress={() => navigation.navigate('AddSkill', { type: 'teach' })}
-                compact
-              >
-                Add
-              </Button>
-            </View>
-            
-            {teachSkills.length > 0 ? (
-              teachSkills.map(skill => renderSkillCard(skill, 'teach'))
-            ) : (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No teaching skills added yet</Text>
-                <Button
-                  mode="contained"
-                  onPress={() => navigation.navigate('AddSkill', { type: 'teach' })}
-                  style={styles.emptyButton}
-                >
-                  Add Your First Teaching Skill
-                </Button>
-              </View>
-            )}
-          </Card.Content>
-        </Card>
+    <View style={styles.container}>
+      {/* Selection Header */}
+      {isSelectionMode && activeSection && (
+        <SelectionHeader
+          selectedCount={getCurrentSelection()?.getSelectedCount() || 0}
+          totalCount={getCurrentSkills().length}
+          onSelectAll={() => getCurrentSelection()?.selectAll(getCurrentSkills())}
+          onDeselectAll={() => getCurrentSelection()?.deselectAll()}
+          onCancel={handleCancelSelection}
+          isAllSelected={getCurrentSelection()?.isAllSelected(getCurrentSkills()) || false}
+        />
+      )}
 
-        <Divider style={styles.divider} />
-
-        {/* Skills to Learn */}
-        <Card style={styles.sectionCard}>
-          <Card.Content>
-            <View style={styles.sectionHeader}>
-              <Title style={styles.sectionTitle}>Skills I Want to Learn</Title>
-              <Button
-                mode="outlined"
-                onPress={() => navigation.navigate('AddSkill', { type: 'learn' })}
-                compact
-              >
-                Add
-              </Button>
-            </View>
-            
-            {learnSkills.length > 0 ? (
-              learnSkills.map(skill => renderSkillCard(skill, 'learn'))
-            ) : (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No learning skills added yet</Text>
-                <Button
-                  mode="contained"
-                  onPress={() => navigation.navigate('AddSkill', { type: 'learn' })}
-                  style={styles.emptyButton}
-                >
-                  Add Your First Learning Goal
-                </Button>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.content}>
+          {/* Skills to Teach */}
+          <Card style={styles.sectionCard}>
+            <Card.Content>
+              <View style={styles.sectionHeader}>
+                <Title style={styles.sectionTitle}>Skills I Can Teach</Title>
+                <View style={styles.sectionActions}>
+                  {!isSelectionMode && teachSkills.length > 0 && (
+                    <Button
+                      mode="outlined"
+                      onPress={() => handleStartSelection('teach')}
+                      compact
+                      style={styles.actionButton}
+                    >
+                      Select
+                    </Button>
+                  )}
+                  <Button
+                    mode="outlined"
+                    onPress={() => navigation.navigate('AddSkill', { type: 'teach' })}
+                    compact
+                  >
+                    Add
+                  </Button>
+                </View>
               </View>
-            )}
-          </Card.Content>
-        </Card>
-      </View>
-    </ScrollView>
+              
+              {teachSkills.length > 0 ? (
+                teachSkills.map(skill => renderSkillCard(skill, 'teach'))
+              ) : (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyText}>No teaching skills added yet</Text>
+                  <Button
+                    mode="contained"
+                    onPress={() => navigation.navigate('AddSkill', { type: 'teach' })}
+                    style={styles.emptyButton}
+                  >
+                    Add Your First Teaching Skill
+                  </Button>
+                </View>
+              )}
+            </Card.Content>
+          </Card>
+
+          <Divider style={styles.divider} />
+
+          {/* Skills to Learn */}
+          <Card style={styles.sectionCard}>
+            <Card.Content>
+              <View style={styles.sectionHeader}>
+                <Title style={styles.sectionTitle}>Skills I Want to Learn</Title>
+                <View style={styles.sectionActions}>
+                  {!isSelectionMode && learnSkills.length > 0 && (
+                    <Button
+                      mode="outlined"
+                      onPress={() => handleStartSelection('learn')}
+                      compact
+                      style={styles.actionButton}
+                    >
+                      Select
+                    </Button>
+                  )}
+                  <Button
+                    mode="outlined"
+                    onPress={() => navigation.navigate('AddSkill', { type: 'learn' })}
+                    compact
+                  >
+                    Add
+                  </Button>
+                </View>
+              </View>
+              
+              {learnSkills.length > 0 ? (
+                learnSkills.map(skill => renderSkillCard(skill, 'learn'))
+              ) : (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyText}>No learning skills added yet</Text>
+                  <Button
+                    mode="contained"
+                    onPress={() => navigation.navigate('AddSkill', { type: 'learn' })}
+                    style={styles.emptyButton}
+                  >
+                    Add Your First Learning Goal
+                  </Button>
+                </View>
+              )}
+            </Card.Content>
+          </Card>
+        </View>
+      </ScrollView>
+
+      {/* Bulk Actions Bar */}
+      {isSelectionMode && activeSection && (
+        <BulkActionsBar
+          selectedCount={getCurrentSelection()?.getSelectedCount() || 0}
+          actions={[
+            {
+              id: 'delete',
+              title: 'Delete Selected',
+              icon: 'delete',
+              onPress: () => handleBulkDelete(activeSection),
+              destructive: true,
+              disabled: (getCurrentSelection()?.getSelectedCount() || 0) === 0,
+            },
+          ]}
+        />
+      )}
+
+      {/* FAB for quick add */}
+      {!isSelectionMode && (
+        <FAB
+          icon="plus"
+          style={styles.fab}
+          onPress={() => navigation.navigate('AddSkill', { type: 'teach' })}
+        />
+      )}
+    </View>
   );
 };
 
@@ -180,6 +350,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  scrollView: {
+    flex: 1,
   },
   content: {
     padding: 16,
@@ -196,6 +369,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: '#6200ea',
+  },
+  sectionActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    marginRight: 8,
   },
   skillCard: {
     marginBottom: 12,
@@ -243,6 +423,12 @@ const styles = StyleSheet.create({
   },
   divider: {
     marginVertical: 16,
+  },
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
   },
 });
 

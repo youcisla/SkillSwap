@@ -1,25 +1,30 @@
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
 import {
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  View,
+    Alert,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    View,
 } from 'react-native';
 import {
-  Avatar,
-  Button,
-  Card,
-  Chip,
-  FAB,
-  Paragraph,
-  Searchbar,
-  Text,
-  Title,
+    Button,
+    Card,
+    Chip,
+    FAB,
+    Paragraph,
+    Searchbar,
+    Text,
+    Title
 } from 'react-native-paper';
+import SafeAvatar from '../components/SafeAvatar';
+import { BulkActionsBar, SelectableItem, SelectionHeader } from '../components/ui/MultiSelection';
+import { useMultiSelection } from '../hooks/useMultiSelection';
 import { useAppDispatch, useAppSelector } from '../store';
-import { fetchMatches } from '../store/slices/matchSlice';
+import { fetchMatches, removeMatch } from '../store/slices/matchSlice';
+import { addUserToCache } from '../store/slices/userSlice';
 import { Match, MatchesStackParamList } from '../types';
+import ProfileDebugger from '../utils/profileDebugger';
 
 type MatchesScreenNavigationProp = StackNavigationProp<MatchesStackParamList, 'MatchesMain'>;
 
@@ -35,6 +40,13 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+
+  // Multi-selection hook
+  const matchSelection = useMultiSelection<Match>(
+    (match) => match.id,
+    { allowSelectAll: true }
+  );
 
   useEffect(() => {
     if (user?.id) {
@@ -42,29 +54,56 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [user?.id]);
 
-  const loadMatches = async () => {
-    if (!user?.id) return;
-    
-    try {
-      await dispatch(fetchMatches(user.id)).unwrap();
-    } catch (error) {
-      console.error('Failed to load matches:', error);
-    }
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadMatches();
-    setRefreshing(false);
-  };
-
   const getMatchedUser = (match: Match) => {
-    const otherUserId = match.user1Id === user?.id ? match.user2Id : match.user1Id;
-    return users.find(u => u.id === otherUserId);
+    const matchData = match as any;
+    
+    // Handle populated match data where user1Id and user2Id are objects
+    const user1Data = matchData.user1Id;
+    const user2Data = matchData.user2Id;
+    
+    // Extract actual IDs for comparison (handle both string IDs and populated objects)
+    const user1Id = typeof user1Data === 'object' ? user1Data.id || user1Data._id : user1Data;
+    const user2Id = typeof user2Data === 'object' ? user2Data.id || user2Data._id : user2Data;
+    
+    console.log('MatchesScreen: getMatchedUser called', {
+      matchId: match.id,
+      currentUserId: user?.id,
+      user1Id,
+      user2Id,
+      user1DataType: typeof user1Data,
+      user2DataType: typeof user2Data
+    });
+    
+    // Determine which user is the "other" user
+    if (String(user1Id) === String(user?.id)) {
+      // Current user is user1, so return user2
+      if (typeof user2Data === 'object') {
+        console.log('MatchesScreen: Found populated user2:', user2Data.name);
+        return user2Data;
+      }
+    } else if (String(user2Id) === String(user?.id)) {
+      // Current user is user2, so return user1
+      if (typeof user1Data === 'object') {
+        console.log('MatchesScreen: Found populated user1:', user1Data.name);
+        return user1Data;
+      }
+    }
+    
+    // Fallback to finding in users array using the actual user ID
+    const otherUserId = String(user1Id) === String(user?.id) ? user2Id : user1Id;
+    const foundUser = users.find(u => String(u.id) === String(otherUserId));
+    console.log('MatchesScreen: Fallback search result:', foundUser ? foundUser.name : 'NOT FOUND');
+    
+    return foundUser;
   };
 
   const getMatchedSkills = (match: Match) => {
-    return match.user1Id === user?.id ? match.user1Skills : match.user2Skills;
+    const matchData = match as any;
+    
+    // Extract actual IDs for comparison (handle both string IDs and populated objects)
+    const user1Id = typeof matchData.user1Id === 'object' ? matchData.user1Id.id || matchData.user1Id._id : matchData.user1Id;
+    
+    return String(user1Id) === String(user?.id) ? match.user1Skills : match.user2Skills;
   };
 
   const filteredMatches = matches.filter(match => {
@@ -79,20 +118,177 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     );
   });
 
+  const loadMatches = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const fetchedMatches = await dispatch(fetchMatches(user.id)).unwrap();
+      
+      // Cache all matched users in the user store for easy access
+      fetchedMatches.forEach(match => {
+        const matchData = match as any;
+        
+        // Add populated user data to cache if available
+        if (matchData.user1Id && typeof matchData.user1Id === 'object') {
+          dispatch(addUserToCache(matchData.user1Id));
+        }
+        if (matchData.user2Id && typeof matchData.user2Id === 'object') {
+          dispatch(addUserToCache(matchData.user2Id));
+        }
+      });
+    } catch (error) {
+      console.error('Failed to load matches:', error);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadMatches();
+    setRefreshing(false);
+  };
+
+  const handleBulkUnmatch = async () => {
+    const selectedMatches = filteredMatches.filter(match => matchSelection.isSelected(match));
+    
+    if (selectedMatches.length === 0) return;
+
+    Alert.alert(
+      'Remove Matches',
+      `Are you sure you want to remove ${selectedMatches.length} match${selectedMatches.length === 1 ? '' : 'es'}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await Promise.all(
+                selectedMatches.map(match => dispatch(removeMatch(match.id)).unwrap())
+              );
+              matchSelection.deselectAll();
+              setIsSelectionMode(false);
+            } catch (error) {
+              console.error('Failed to remove matches:', error);
+              Alert.alert('Error', 'Failed to remove some matches. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleBulkMessage = async () => {
+    const selectedMatches = filteredMatches.filter(match => matchSelection.isSelected(match));
+    
+    if (selectedMatches.length === 0) return;
+
+    Alert.alert(
+      'Message Multiple Users',
+      `Send a message to ${selectedMatches.length} user${selectedMatches.length === 1 ? '' : 's'}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Message All',
+          onPress: () => {
+            selectedMatches.forEach(match => {
+              const matchedUser = getMatchedUser(match);
+              if (matchedUser) {
+                const userId = String(matchedUser.id || matchedUser._id);
+                const sortedIds = [String(user?.id), userId].sort();
+                const chatId = `${sortedIds[0]}-${sortedIds[1]}`;
+                
+                // Navigate to Messages tab and then to specific chat
+                (navigation as any).navigate('Messages', {
+                  screen: 'MessageChat',
+                  params: { chatId, otherUserId: userId }
+                });
+              }
+            });
+            matchSelection.deselectAll();
+            setIsSelectionMode(false);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleStartSelection = () => {
+    setIsSelectionMode(true);
+  };
+
+  const handleCancelSelection = () => {
+    matchSelection.deselectAll();
+    setIsSelectionMode(false);
+  };
+
+  const getCompatibilityColor = (score: number) => {
+    if (score >= 80) return '#4caf50';
+    if (score >= 60) return '#ff9800';
+    return '#f44336';
+  };
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyTitle}>No matches found</Text>
+      <Paragraph style={styles.emptyText}>
+        {searchQuery 
+          ? "Try adjusting your search criteria" 
+          : "We'll find matches for you based on your skills and preferences!"
+        }
+      </Paragraph>
+      <Button 
+        mode="contained" 
+        onPress={() => {
+          setSearchQuery('');
+          loadMatches();
+        }}
+        style={styles.emptyButton}
+      >
+        {searchQuery ? "Clear Search" : "Refresh Matches"}
+      </Button>
+    </View>
+  );
+
+  const handleMatchPress = (item: Match) => {
+    const matchedUser = getMatchedUser(item);
+    if (!matchedUser) {
+      console.warn('MatchesScreen: No matched user found for match:', item.id);
+      return;
+    }
+
+    console.log('MatchesScreen: Match pressed:', {
+      matchId: item.id,
+      matchedUserId: matchedUser.id || matchedUser._id,
+      matchedUserName: matchedUser.name,
+      currentUserId: user?.id
+    });
+    
+    const userId = String(matchedUser.id || matchedUser._id);
+    ProfileDebugger.logMatchClick(item.id, userId, matchedUser);
+    ProfileDebugger.logUserStore(users, user);
+    
+    navigation.navigate('MatchUserProfile', { userId });
+  };
+
   const renderMatchCard = ({ item }: { item: Match }) => {
     const matchedUser = getMatchedUser(item);
     const matchedSkills = getMatchedSkills(item);
 
-    if (!matchedUser) return null;
+    if (!matchedUser) {
+      console.warn('MatchesScreen: No matched user found for match:', item.id);
+      return null;
+    }
 
-    return (
+    const matchContent = (
       <Card style={styles.matchCard}>
         <Card.Content>
           <View style={styles.matchHeader}>
             <View style={styles.userInfo}>
-              <Avatar.Image 
+              <SafeAvatar 
                 size={60} 
-                source={{ uri: matchedUser.profileImage || 'https://via.placeholder.com/60' }}
+                source={matchedUser.profileImage ? { uri: matchedUser.profileImage } : undefined}
+                fallbackText={matchedUser.name}
+                style={styles.avatar}
               />
               <View style={styles.userDetails}>
                 <Title style={styles.userName}>{matchedUser.name}</Title>
@@ -126,59 +322,52 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </View>
 
-          <View style={styles.matchActions}>
-            <Button 
-              mode="outlined" 
-              onPress={() => navigation.navigate('MatchUserProfile', { userId: matchedUser.id })}
-              style={styles.actionButton}
-            >
-              View Profile
-            </Button>
-            <Button 
-              mode="contained" 
-              onPress={() => handleStartChat(item.id, matchedUser.id)}
-              style={styles.actionButton}
-            >
-              Start Chat
-            </Button>
-          </View>
+          {!isSelectionMode && (
+            <View style={styles.matchActions}>
+              <Button 
+                mode="outlined" 
+                onPress={() => handleMatchPress(item)}
+                style={styles.actionButton}
+              >
+                View Profile
+              </Button>
+              <Button 
+                mode="contained" 
+                onPress={() => {
+                  const userId = String(matchedUser.id || matchedUser._id);
+                  const sortedIds = [String(user?.id), userId].sort();
+                  const chatId = `${sortedIds[0]}-${sortedIds[1]}`;
+                  
+                  // Navigate to Messages tab and then to specific chat
+                  (navigation as any).navigate('Messages', {
+                    screen: 'MessageChat',
+                    params: { chatId, otherUserId: userId }
+                  });
+                }}
+                style={styles.actionButton}
+              >
+                Message
+              </Button>
+            </View>
+          )}
         </Card.Content>
       </Card>
     );
-  };
 
-  const getCompatibilityColor = (score: number) => {
-    if (score >= 80) return '#4caf50';
-    if (score >= 60) return '#ff9800';
-    return '#f44336';
-  };
-
-  const handleStartChat = async (matchId: string, otherUserId: string) => {
-    // Create or find existing chat with consistent ID format
-    const sortedIds = [user?.id, otherUserId].sort();
-    const chatId = `${sortedIds[0]}-${sortedIds[1]}`;
-    try {
-      navigation.navigate('MatchChat', { chatId, otherUserId });
-    } catch (error) {
-      console.error('Failed to start chat:', error);
+    if (isSelectionMode) {
+      return (
+        <SelectableItem
+          isSelected={matchSelection.isSelected(item)}
+          onToggleSelection={() => matchSelection.toggleSelection(item)}
+          onPress={() => handleMatchPress(item)}
+        >
+          {matchContent}
+        </SelectableItem>
+      );
     }
-  };
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Text style={styles.emptyTitle}>No matches yet</Text>
-      <Paragraph style={styles.emptyText}>
-        Add more skills to your profile to find better matches!
-      </Paragraph>
-      <Button 
-        mode="contained" 
-        onPress={() => navigation.navigate('MatchUserProfile', { userId: user?.id })}
-        style={styles.emptyButton}
-      >
-        Update Profile
-      </Button>
-    </View>
-  );
+    return matchContent;
+  };
 
   if (loading && matches.length === 0) {
     return (
@@ -199,6 +388,18 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
         />
       </View>
 
+      {/* Selection Header */}
+      {isSelectionMode && (
+        <SelectionHeader
+          selectedCount={matchSelection.getSelectedCount()}
+          totalCount={filteredMatches.length}
+          onSelectAll={() => matchSelection.selectAll(filteredMatches)}
+          onDeselectAll={() => matchSelection.deselectAll()}
+          onCancel={handleCancelSelection}
+          isAllSelected={matchSelection.isAllSelected(filteredMatches)}
+        />
+      )}
+
       <FlatList
         data={filteredMatches}
         renderItem={renderMatchCard}
@@ -212,6 +413,41 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
         }
         ListEmptyComponent={renderEmptyState}
       />
+
+      {/* Bulk Actions Bar */}
+      {isSelectionMode && (
+        <BulkActionsBar
+          selectedCount={matchSelection.getSelectedCount()}
+          actions={[
+            {
+              id: 'message',
+              title: 'Message Selected',
+              icon: 'message',
+              onPress: handleBulkMessage,
+              disabled: matchSelection.getSelectedCount() === 0,
+            },
+            {
+              id: 'unmatch',
+              title: 'Remove Selected',
+              icon: 'close',
+              onPress: handleBulkUnmatch,
+              destructive: true,
+              disabled: matchSelection.getSelectedCount() === 0,
+            },
+          ]}
+        />
+      )}
+
+      {/* Selection Toggle FAB */}
+      {!isSelectionMode && filteredMatches.length > 0 && (
+        <FAB
+          style={[styles.fab, { bottom: 80 }]}
+          icon="select-multiple"
+          onPress={handleStartSelection}
+          label="Select"
+          size="small"
+        />
+      )}
 
       <FAB
         style={styles.fab}
@@ -257,6 +493,9 @@ const styles = StyleSheet.create({
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  avatar: {
+    borderRadius: 30,
   },
   userDetails: {
     marginLeft: 16,

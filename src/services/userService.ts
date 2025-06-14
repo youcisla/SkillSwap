@@ -4,15 +4,26 @@ import { ApiService } from './apiService';
 class UserService {
   async getUserProfile(userId: string): Promise<UserProfile> {
     try {
+      console.log('UserService: Fetching profile for user:', userId);
       const response = await ApiService.get<ApiResponse<UserProfile>>(`/users/${userId}`);
       
+      console.log('UserService: API response:', {
+        success: response.success,
+        hasData: !!response.data,
+        error: response.error,
+        userId
+      });
+      
       if (response.success && response.data) {
+        console.log('UserService: Successfully fetched user:', response.data.id, response.data.name);
         return response.data;
       }
       
-      throw new Error(response.error || 'Failed to get user profile');
+      const errorMessage = response.error || 'Failed to get user profile';
+      console.error('UserService: API returned error:', errorMessage);
+      throw new Error(errorMessage);
     } catch (error) {
-      console.error('Get user profile error:', error);
+      console.error('UserService: Get user profile error:', error);
       throw error;
     }
   }

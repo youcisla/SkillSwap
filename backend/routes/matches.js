@@ -3,6 +3,7 @@ const Match = require('../models/Match');
 const User = require('../models/User');
 const Skill = require('../models/Skill');
 const auth = require('../middleware/auth');
+const { emitNewMatch } = require('../utils/socketUtils');
 
 const router = express.Router();
 
@@ -78,6 +79,9 @@ router.post('/', auth, async (req, res) => {
       .populate('user1Id', 'name city profileImage rating totalSessions')
       .populate('user2Id', 'name city profileImage rating totalSessions');
 
+    // Emit real-time match notification to both users
+    emitNewMatch(user1Id, user2Id, populatedMatch);
+
     res.status(201).json({
       success: true,
       data: populatedMatch
@@ -87,6 +91,195 @@ router.post('/', auth, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to create match'
+    });
+  }
+});
+
+// NEW: Dynamic matching endpoint
+router.get('/dynamic', auth, async (req, res) => {
+  try {
+    const { 
+      userId, 
+      maxDistance = 50, 
+      skillCategories, 
+      minCompatibilityScore = 30,
+      latitude,
+      longitude 
+    } = req.query;
+
+    console.log('🔍 Dynamic matching request:', {
+      userId,
+      maxDistance,
+      skillCategories,
+      minCompatibilityScore,
+      hasLocation: !!(latitude && longitude)
+    });
+
+    // Get current user's skills
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    const userTeachSkills = await Skill.find({ 
+      userId, 
+      type: 'teach', 
+      isActive: true 
+    });
+    const userLearnSkills = await Skill.find({ 
+      userId, 
+      type: 'learn', 
+      isActive: true 
+    });
+
+    console.log(`📚 User has ${userTeachSkills.length} teaching skills, ${userLearnSkills.length} learning skills`);
+
+    if (userTeachSkills.length === 0 && userLearnSkills.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        message: 'Add skills to your profile to find matches!'
+      });
+    }
+
+    // Build user search criteria
+    let userQuery = {
+      _id: { $ne: userId },
+      isActive: true
+    };
+
+    // Add location filtering if provided
+    if (latitude && longitude && maxDistance) {
+      userQuery['location.coordinates'] = {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [parseFloat(longitude), parseFloat(latitude)]
+          },
+          $maxDistance: parseFloat(maxDistance) * 1000 // Convert km to meters
+        }
+      };
+    }
+
+    // Get potential match users
+    const potentialUsers = await User.find(userQuery)
+      .limit(100) // Limit for performance
+      .lean();
+
+    console.log(`👥 Found ${potentialUsers.length} potential users`);
+
+    const dynamicMatches = [];
+
+    for (const otherUser of potentialUsers) {
+      // Skip if already matched
+      const existingMatch = await Match.findOne({
+        $or: [
+          { user1Id: userId, user2Id: otherUser._id },
+          { user1Id: otherUser._id, user2Id: userId }
+        ],
+        isActive: true
+      });
+
+      if (existingMatch) continue;
+
+      // Get other user's skills
+      const otherTeachSkills = await Skill.find({ 
+        userId: otherUser._id, 
+        type: 'teach', 
+        isActive: true 
+      });
+      const otherLearnSkills = await Skill.find({ 
+        userId: otherUser._id, 
+        type: 'learn', 
+        isActive: true 
+      });
+
+      // Skip users with no skills
+      if (otherTeachSkills.length === 0 && otherLearnSkills.length === 0) {
+        continue;
+      }
+
+      // Calculate dynamic compatibility
+      const compatibility = calculateDynamicCompatibility(
+        userTeachSkills,
+        userLearnSkills,
+        otherTeachSkills,
+        otherLearnSkills
+      );
+
+      if (compatibility.score >= minCompatibilityScore) {
+        // Calculate distance if location provided
+        let distance = null;
+        if (latitude && longitude && otherUser.location?.coordinates) {
+          distance = calculateDistance(
+            parseFloat(latitude),
+            parseFloat(longitude),
+            otherUser.location.coordinates[1],
+            otherUser.location.coordinates[0]
+          );
+        }
+
+        dynamicMatches.push({
+          user: {
+            id: otherUser._id.toString(),
+            name: otherUser.name,
+            email: otherUser.email,
+            city: otherUser.city,
+            bio: otherUser.bio,
+            profileImage: otherUser.profileImage,
+            rating: otherUser.rating,
+            totalSessions: otherUser.totalSessions,
+            skillsToTeach: otherTeachSkills.map(s => ({ 
+              id: s._id.toString(), 
+              name: s.name, 
+              category: s.category,
+              level: s.level 
+            })),
+            skillsToLearn: otherLearnSkills.map(s => ({ 
+              id: s._id.toString(), 
+              name: s.name, 
+              category: s.category,
+              level: s.level 
+            }))
+          },
+          compatibilityScore: compatibility.score,
+          sharedSkills: {
+            canTeach: compatibility.canTeach,
+            canLearnFrom: compatibility.canLearnFrom
+          },
+          distance: distance,
+          matchReasons: compatibility.reasons
+        });
+      }
+    }
+
+    // Sort by compatibility score, then by distance if available
+    dynamicMatches.sort((a, b) => {
+      if (a.compatibilityScore !== b.compatibilityScore) {
+        return b.compatibilityScore - a.compatibilityScore;
+      }
+      if (a.distance !== null && b.distance !== null) {
+        return a.distance - b.distance;
+      }
+      return 0;
+    });
+
+    console.log(`✅ Found ${dynamicMatches.length} dynamic matches`);
+
+    res.json({
+      success: true,
+      data: dynamicMatches.slice(0, 20), // Return top 20 matches
+      totalFound: dynamicMatches.length
+    });
+
+  } catch (error) {
+    console.error('Dynamic matching error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to find dynamic matches'
     });
   }
 });
@@ -266,6 +459,84 @@ router.delete('/:matchId', auth, async (req, res) => {
     });
   }
 });
+
+// Enhanced compatibility calculation
+function calculateDynamicCompatibility(userTeach, userLearn, otherTeach, otherLearn) {
+  const canTeach = [];
+  const canLearnFrom = [];
+  const reasons = [];
+
+  // What I can teach them
+  userTeach.forEach(mySkill => {
+    const matchingSkill = otherLearn.find(theirSkill => 
+      mySkill.name.toLowerCase() === theirSkill.name.toLowerCase() ||
+      mySkill.name.toLowerCase().includes(theirSkill.name.toLowerCase()) ||
+      theirSkill.name.toLowerCase().includes(mySkill.name.toLowerCase())
+    );
+    
+    if (matchingSkill) {
+      canTeach.push(mySkill.name);
+      reasons.push(`You can teach ${mySkill.name}`);
+    }
+  });
+
+  // What I can learn from them
+  otherTeach.forEach(theirSkill => {
+    const matchingSkill = userLearn.find(mySkill => 
+      theirSkill.name.toLowerCase() === mySkill.name.toLowerCase() ||
+      theirSkill.name.toLowerCase().includes(mySkill.name.toLowerCase()) ||
+      mySkill.name.toLowerCase().includes(theirSkill.name.toLowerCase())
+    );
+    
+    if (matchingSkill) {
+      canLearnFrom.push(theirSkill.name);
+      reasons.push(`You can learn ${theirSkill.name}`);
+    }
+  });
+
+  // Calculate score based on mutual benefit
+  const totalUserSkills = userTeach.length + userLearn.length;
+  const totalMatches = canTeach.length + canLearnFrom.length;
+  
+  let score = 0;
+  if (totalUserSkills > 0) {
+    score = Math.round((totalMatches / totalUserSkills) * 100);
+  }
+
+  // Bonus for mutual exchange (both can teach each other)
+  if (canTeach.length > 0 && canLearnFrom.length > 0) {
+    score += 20; // Bonus for mutual exchange
+    reasons.push('Mutual skill exchange possible');
+  }
+
+  // Cap at 100
+  score = Math.min(score, 100);
+
+  return {
+    score,
+    canTeach,
+    canLearnFrom,
+    reasons
+  };
+}
+
+// Calculate distance between two coordinates
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radius of the Earth in kilometers
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const d = R * c; // Distance in kilometers
+  return Math.round(d * 100) / 100; // Round to 2 decimal places
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI/180);
+}
 
 // Helper function to calculate compatibility between users
 function calculateCompatibility(user1Teach, user1Learn, user2Teach, user2Learn) {

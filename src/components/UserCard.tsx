@@ -1,7 +1,8 @@
 import React from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
-import { Avatar, Button, Card, Chip, Paragraph, Title } from 'react-native-paper';
+import { Button, Card, Chip, Paragraph, Title } from 'react-native-paper';
 import { UserProfile } from '../types';
+import SafeAvatar from './SafeAvatar';
 
 interface UserCardProps {
   user: UserProfile;
@@ -30,11 +31,11 @@ const UserCard: React.FC<UserCardProps> = ({
     <Card style={[styles.card, style]} onPress={onPress}>
       <Card.Content>
         <View style={styles.header}>
-          <Avatar.Image
+          <SafeAvatar
             size={60}
-            source={{ 
-              uri: user.profileImage || `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60"><rect width="60" height="60" fill="#6200ea"/><text x="50%" y="50%" text-anchor="middle" dy="0.35em" fill="white" font-size="28" font-family="Arial">${user.name.charAt(0).toUpperCase()}</text></svg>`)}`
-            }}
+            source={user.profileImage ? { uri: user.profileImage } : undefined}
+            fallbackText={user.name}
+            style={styles.avatar}
           />
           <View style={styles.userInfo}>
             <Title style={styles.name}>{user.name}</Title>
@@ -162,6 +163,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  avatar: {
+    borderRadius: 30,
   },
   userInfo: {
     marginLeft: 16,

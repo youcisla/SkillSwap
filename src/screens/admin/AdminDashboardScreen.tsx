@@ -500,7 +500,7 @@ const AdminDashboardScreen: React.FC = () => {
       {      [
         { key: 'dashboard', label: 'Dashboard', icon: 'view-dashboard' },
         { key: 'users', label: 'Users', icon: 'account-group' },
-        { key: 'skills', label: 'Skills', icon: 'school' },
+        { key: 'skills', label: 'Skills', icon: 'lightbulb' },
         { key: 'sessions', label: 'Sessions', icon: 'calendar' },
         { key: 'analytics', label: 'Analytics', icon: 'chart-line' },
         { key: 'moderation', label: 'Moderation', icon: 'shield-check' },

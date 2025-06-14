@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect } from 'react';
@@ -5,28 +6,31 @@ import {
     Alert,
     ScrollView,
     StyleSheet,
-    View,
+    View
 } from 'react-native';
 import {
-    Avatar,
     Card,
     Chip,
     Divider,
     IconButton,
     Paragraph,
     Text,
-    Title
+    Title,
+    useTheme
 } from 'react-native-paper';
+import SafeAvatar from '../components/SafeAvatar';
 import EnhancedButton from '../components/ui/EnhancedButton';
 import { StatCard } from '../components/ui/EnhancedCard';
 import LoadingState, { EmptyState } from '../components/ui/LoadingState';
+import useHapticFeedback from '../hooks/useHapticFeedback';
 import { useAppDispatch, useAppSelector } from '../store';
 import { logout } from '../store/slices/authSlice';
 import { checkFollowStatus, fetchFollowStats, followUser, unfollowUser } from '../store/slices/followSlice';
 import { fetchUserSkills } from '../store/slices/skillSlice';
-import { fetchUserProfile } from '../store/slices/userSlice';
+import { fetchOtherUserProfile, fetchUserProfile } from '../store/slices/userSlice';
 import { colors, spacing } from '../theme';
 import { HomeStackParamList, MatchesStackParamList, ProfileStackParamList } from '../types';
+import ProfileDebugger from '../utils/profileDebugger';
 
 // Type for navigation that can work with multiple stacks
 type ProfileNavigationProp = 
@@ -47,6 +51,8 @@ interface ProfileParams {
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<ProfileNavigationProp>();
   const route = useRoute<ProfileRouteProp>();
+  const theme = useTheme();
+  const { triggerHaptic } = useHapticFeedback();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { currentUser, users, loading } = useAppSelector((state) => state.user);
@@ -55,25 +61,55 @@ const ProfileScreen: React.FC = () => {
 
   const params = route.params as ProfileParams | undefined;
   const userId = params?.userId || user?.id;
-  const isOwnProfile = !params?.userId || params?.userId === user?.id;
   
-  const profileUser = isOwnProfile ? currentUser : users.find(u => u.id === userId);
-  const userSkills = skills.filter(skill => skill.userId === userId);
+  // iOS-specific fix: Ensure userId is properly converted to string
+  const normalizedUserId = userId ? String(userId) : undefined;
+  const isOwnProfile = !params?.userId || String(params?.userId) === String(user?.id);
+  
+  const profileUser = isOwnProfile ? currentUser : users.find(u => String(u.id) === normalizedUserId);
+  const userSkills = skills.filter(skill => String(skill.userId) === normalizedUserId);
   const teachSkills = userSkills.filter(skill => skill.type === 'teach');
   const learnSkills = userSkills.filter(skill => skill.type === 'learn');
 
   useEffect(() => {
-    if (userId) {
-      dispatch(fetchUserProfile(userId));
-      dispatch(fetchUserSkills(userId));
-      dispatch(fetchFollowStats(userId));
+    console.log('ProfileScreen: Effect triggered with:', {
+      userId,
+      normalizedUserId,
+      isOwnProfile,
+      currentUserId: user?.id,
+      params: route.params
+    });
+    
+    ProfileDebugger.logProfileNavigation(normalizedUserId || 'undefined', route.params);
+    
+    if (normalizedUserId) {
+      console.log('ProfileScreen: Fetching profile for user:', normalizedUserId);
+      
+      // Use different actions based on whether it's the current user or another user
+      const fetchAction = isOwnProfile ? fetchUserProfile : fetchOtherUserProfile;
+      
+      dispatch(fetchAction(normalizedUserId))
+        .unwrap()
+        .then((fetchedUser) => {
+          console.log('ProfileScreen: Successfully fetched user:', fetchedUser.id, fetchedUser.name);
+          ProfileDebugger.logUserFetch(normalizedUserId, true);
+        })
+        .catch((error) => {
+          console.error('ProfileScreen: Failed to fetch user profile:', error);
+          ProfileDebugger.logUserFetch(normalizedUserId, false, error.message);
+        });
+        
+      dispatch(fetchUserSkills(normalizedUserId));
+      dispatch(fetchFollowStats(normalizedUserId));
       
       // Check follow status if viewing another user's profile
       if (!isOwnProfile && user?.id) {
-        dispatch(checkFollowStatus(userId));
+        dispatch(checkFollowStatus(normalizedUserId));
       }
+    } else {
+      console.warn('ProfileScreen: No userId provided');
     }
-  }, [userId, isOwnProfile, user?.id]);
+  }, [normalizedUserId, isOwnProfile, user?.id]);
 
   const handleLogout = () => {
     Alert.alert(
@@ -92,17 +128,25 @@ const ProfileScreen: React.FC = () => {
     );
   };
 
+  const renderIcon = (iconName: string, color?: string, size: number = 20) => (
+    <MaterialCommunityIcons 
+      name={iconName as any} 
+      size={size} 
+      color={color || theme.colors.primary} 
+    />
+  );
+
   const handleStartChat = () => {
-    if (userId && userId !== user?.id) {
+    if (normalizedUserId && normalizedUserId !== String(user?.id)) {
       // Generate consistent chat ID
-      const sortedIds = [user?.id, userId].sort();
+      const sortedIds = [user?.id, normalizedUserId].sort();
       const chatId = `${sortedIds[0]}-${sortedIds[1]}`;
       
       // Navigate to Messages tab and then to chat
       try {
         (navigation as any).navigate('Messages', { 
           screen: 'MessageChat',
-          params: { chatId, otherUserId: userId }
+          params: { chatId, otherUserId: normalizedUserId }
         });
       } catch (error) {
         console.log('Navigation error:', error);
@@ -110,7 +154,7 @@ const ProfileScreen: React.FC = () => {
         try {
           (navigation as any).navigate('MessageChat', { 
             chatId, 
-            otherUserId: userId 
+            otherUserId: normalizedUserId 
           });
         } catch (error2) {
           console.log('Direct navigation also failed:', error2);
@@ -120,17 +164,17 @@ const ProfileScreen: React.FC = () => {
   };
 
   const handleFollowToggle = async () => {
-    if (!userId || !user?.id) return;
+    if (!normalizedUserId || !user?.id) return;
     
     try {
-      const currentFollowStatus = isFollowing[userId];
+      const currentFollowStatus = isFollowing[normalizedUserId];
       if (currentFollowStatus) {
-        await dispatch(unfollowUser(userId)).unwrap();
+        await dispatch(unfollowUser(normalizedUserId)).unwrap();
       } else {
-        await dispatch(followUser(userId)).unwrap();
+        await dispatch(followUser(normalizedUserId)).unwrap();
       }
       // Refresh follow stats
-      dispatch(fetchFollowStats(userId));
+      dispatch(fetchFollowStats(normalizedUserId));
     } catch (error) {
       console.error('Failed to toggle follow status:', error);
       Alert.alert('Error', 'Failed to update follow status. Please try again.');
@@ -138,28 +182,38 @@ const ProfileScreen: React.FC = () => {
   };
 
   const handleFollowersPress = () => {
-    if (userId) {
-      (navigation as any).navigate('Followers', { userId });
+    if (normalizedUserId) {
+      (navigation as any).navigate('Followers', { userId: normalizedUserId });
     }
   };
 
   const handleFollowingPress = () => {
-    if (userId) {
-      (navigation as any).navigate('Following', { userId });
+    if (normalizedUserId) {
+      (navigation as any).navigate('Following', { userId: normalizedUserId });
     }
   };
 
   if (loading && !profileUser) {
+    console.log('ProfileScreen: Loading state - userId:', userId, 'profileUser:', !!profileUser);
     return <LoadingState fullScreen text="Loading profile..." />;
   }
 
   if (!profileUser) {
+    console.error('ProfileScreen: User not found', {
+      userId,
+      isOwnProfile,
+      currentUserExists: !!currentUser,
+      usersArrayLength: users.length,
+      usersIds: users.map(u => u.id),
+      requestedUserId: userId
+    });
+    
     return (
       <View style={styles.centerContainer}>
         <EmptyState
-          icon="account-question"
+          icon={renderIcon("account-question", colors.neutral[400], 32)}
           title="User not found"
-          description="This user profile could not be loaded."
+          description={`This user profile could not be loaded. ${__DEV__ ? `(ID: ${userId})` : ''}`}
         />
       </View>
     );
@@ -171,9 +225,11 @@ const ProfileScreen: React.FC = () => {
       <Card style={styles.headerCard}>
         <Card.Content>
           <View style={styles.profileHeader}>
-            <Avatar.Image 
+            <SafeAvatar 
               size={80} 
-              source={{ uri: profileUser.profileImage || `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="#6200ea"/><text x="50%" y="50%" text-anchor="middle" dy="0.35em" fill="white" font-size="32" font-family="Arial">${profileUser.name.charAt(0).toUpperCase()}</text></svg>`)}` }}
+              source={profileUser.profileImage ? { uri: profileUser.profileImage } : undefined}
+              fallbackText={profileUser.name}
+              style={styles.avatar}
             />
             <View style={styles.profileInfo}>
               <Title>{profileUser.name}</Title>
@@ -211,8 +267,8 @@ const ProfileScreen: React.FC = () => {
               ) : (
                 <View style={styles.otherUserActions}>
                   <EnhancedButton
-                    title={userId && isFollowing[userId] ? "Unfollow" : "Follow"}
-                    variant={userId && isFollowing[userId] ? "outline" : "primary"}
+                    title={normalizedUserId && isFollowing[normalizedUserId] ? "Unfollow" : "Follow"}
+                    variant={normalizedUserId && isFollowing[normalizedUserId] ? "outline" : "primary"}
                     onPress={handleFollowToggle}
                     style={styles.followButton}
                     hapticFeedback
@@ -259,7 +315,7 @@ const ProfileScreen: React.FC = () => {
             </View>
           ) : (
             <EmptyState
-              icon="school"
+              icon={<IconButton icon="account-voice" size={32} iconColor={colors.neutral[400]} />}
               title="No teaching skills yet"
               description={isOwnProfile ? "Add skills you can teach to help others learn!" : "This user hasn't added any teaching skills yet."}
             />
@@ -290,7 +346,7 @@ const ProfileScreen: React.FC = () => {
             </View>
           ) : (
             <EmptyState
-              icon="lightbulb-outline"
+              icon={<IconButton icon="lightbulb-outline" size={32} iconColor={colors.neutral[400]} />}
               title="No learning goals yet"
               description={isOwnProfile ? "Add skills you want to learn from others!" : "This user hasn't added any learning goals yet."}
             />
@@ -308,7 +364,7 @@ const ProfileScreen: React.FC = () => {
               variant="outline"
               onPress={() => (navigation as any).navigate('SkillManagement')}
               style={styles.actionButton}
-              icon="cog"
+              icon={renderIcon("cog")}
               hapticFeedback
             />
             <EnhancedButton
@@ -316,7 +372,7 @@ const ProfileScreen: React.FC = () => {
               variant="outline"
               onPress={() => (navigation as any).navigate('EditProfile')}
               style={styles.actionButton}
-              icon="account-edit"
+              icon={renderIcon("account-edit")}
               hapticFeedback
             />
             
@@ -327,7 +383,7 @@ const ProfileScreen: React.FC = () => {
                 variant="primary"
                 onPress={() => (navigation as any).navigate('AdminDashboard')}
                 style={styles.actionButton}
-                icon="shield-account"
+                icon={renderIcon("shield-account")}
                 hapticFeedback
               />
             )}
@@ -338,7 +394,7 @@ const ProfileScreen: React.FC = () => {
               variant="danger"
               onPress={handleLogout}
               style={styles.actionButton}
-              icon="logout"
+              icon={renderIcon("logout")}
               hapticFeedback
             />
           </Card.Content>
@@ -354,7 +410,7 @@ const ProfileScreen: React.FC = () => {
               variant="primary"
               onPress={handleStartChat}
               style={styles.actionButton}
-              icon="message"
+              icon={renderIcon("message")}
               hapticFeedback
             />
             <EnhancedButton
@@ -365,7 +421,7 @@ const ProfileScreen: React.FC = () => {
                 Alert.alert('Coming Soon', 'Session request feature will be available soon!');
               }}
               style={styles.actionButton}
-              icon="calendar-plus"
+              icon={renderIcon("calendar-plus")}
               hapticFeedback
             />
           </Card.Content>
@@ -378,17 +434,17 @@ const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.neutral[50],
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing.large,
+    padding: spacing.xl,
   },
   headerCard: {
-    margin: spacing.medium,
-    marginBottom: spacing.small,
+    margin: spacing.xl,
+    marginBottom: spacing.md,
     borderRadius: 12,
     elevation: 2,
   },
@@ -396,14 +452,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  avatar: {
+    borderRadius: 40,
+  },
   profileInfo: {
-    marginLeft: spacing.medium,
+    marginLeft: spacing.xl,
     flex: 1,
   },
   followStats: {
     flexDirection: 'row',
-    marginTop: spacing.small,
-    gap: spacing.small,
+    marginTop: spacing.md,
+    gap: spacing.md,
   },
   statCard: {
     flex: 1,
@@ -414,28 +473,28 @@ const styles = StyleSheet.create({
   },
   otherUserActions: {
     alignItems: 'center',
-    gap: spacing.small,
+    gap: spacing.md,
   },
   followButton: {
     minWidth: 100,
   },
   messageIcon: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary.main,
   },
   rating: {
-    color: colors.textSecondary,
+    color: colors.neutral[600],
     fontSize: 14,
     marginTop: spacing.xs,
   },
   bioSection: {
-    marginTop: spacing.medium,
-    paddingTop: spacing.medium,
+    marginTop: spacing.xl,
+    paddingTop: spacing.xl,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.neutral[200],
   },
   skillsCard: {
-    margin: spacing.medium,
-    marginTop: spacing.small,
+    margin: spacing.xl,
+    marginTop: spacing.md,
     borderRadius: 12,
     elevation: 2,
   },
@@ -447,7 +506,7 @@ const styles = StyleSheet.create({
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: spacing.small,
+    marginTop: spacing.md,
     gap: spacing.xs,
   },
   chip: {
@@ -455,8 +514,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   actionsCard: {
-    margin: spacing.medium,
-    marginTop: spacing.small,
+    margin: spacing.xl,
+    marginTop: spacing.md,
     borderRadius: 12,
     elevation: 2,
   },
@@ -464,8 +523,8 @@ const styles = StyleSheet.create({
     marginVertical: spacing.xs,
   },
   divider: {
-    marginVertical: spacing.medium,
-    backgroundColor: colors.border,
+    marginVertical: spacing.xl,
+    backgroundColor: colors.neutral[200],
   },
 });
 

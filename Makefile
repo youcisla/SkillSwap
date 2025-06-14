@@ -76,6 +76,7 @@ help:
 	@echo ""
 	@echo "$(YELLOW)Utility Commands:$(NC)"
 	@echo "  make clean            - Clean node_modules and caches"
+	@echo "  make fix-deps         - Fix dependency conflicts (use when npm install fails)"
 	@echo "  make reset            - Complete reset (clean + reinstall)"
 	@echo "  make check            - Check project health"
 	@echo "  make logs-backend     - Show backend logs"
@@ -107,7 +108,10 @@ setup: check-requirements install install-backend create-env
 .PHONY: install-frontend
 install-frontend:
 	@echo 📱 Installing frontend dependencies...
-	@cd $(FRONTEND_DIR) && npm install
+	@if exist node_modules rmdir /s /q node_modules
+	@if exist package-lock.json del package-lock.json
+	@npm cache clean --force
+	@npm install --legacy-peer-deps || (echo ⚠️  Regular install failed, trying with --legacy-peer-deps && npm install --legacy-peer-deps)
 	@echo ✅ Frontend dependencies installed
 
 .PHONY: install-backend
@@ -289,6 +293,17 @@ clean:
 	@if exist "$(FRONTEND_DIR)\.expo" rmdir /s /q "$(FRONTEND_DIR)\.expo"
 	@npm cache clean --force >nul 2>&1 || echo ""
 	@echo "$(GREEN)✅ Project cleaned$(NC)"
+
+.PHONY: fix-deps
+fix-deps:
+	@echo "$(YELLOW)🔧 Fixing dependency conflicts...$(NC)"
+	@if exist package-lock.json del package-lock.json
+	@if exist yarn.lock del yarn.lock
+	@if exist node_modules rmdir /s /q node_modules
+	@npm cache clean --force
+	@echo "$(YELLOW)Installing with legacy peer deps...$(NC)"
+	@npm install --legacy-peer-deps
+	@echo "$(GREEN)✅ Dependencies fixed$(NC)"
 
 .PHONY: reset
 reset: clean install

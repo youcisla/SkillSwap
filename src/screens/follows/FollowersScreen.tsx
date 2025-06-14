@@ -8,15 +8,15 @@ import {
     View,
 } from 'react-native';
 import {
-    Avatar,
     Button,
     Card,
     Chip,
     Paragraph,
     Searchbar,
     Text,
-    Title,
+    Title
 } from 'react-native-paper';
+import SafeAvatar from '../../components/SafeAvatar';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchFollowers } from '../../store/slices/followSlice';
 import { FollowUser, ProfileStackParamList } from '../../types';
@@ -86,11 +86,11 @@ const FollowersScreen: React.FC<Props> = ({ navigation, route }) => {
     <Card style={styles.followerCard}>
       <Card.Content>
         <View style={styles.followerHeader}>
-          <Avatar.Image 
+          <SafeAvatar 
             size={50} 
-            source={{ 
-              uri: follower.profileImage || `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50"><rect width="50" height="50" fill="#6200ea"/><text x="50%" y="50%" text-anchor="middle" dy="0.35em" fill="white" font-size="24" font-family="Arial">${follower.name.charAt(0).toUpperCase()}</text></svg>`)}` 
-            }}
+            source={follower.profileImage ? { uri: follower.profileImage } : undefined}
+            fallbackText={follower.name}
+            style={styles.followerAvatar}
           />
           <View style={styles.followerInfo}>
             <Title style={styles.followerName}>{follower.name}</Title>
@@ -203,6 +203,9 @@ const styles = StyleSheet.create({
   followerHeader: {
     flexDirection: 'row',
     marginBottom: 12,
+  },
+  followerAvatar: {
+    borderRadius: 25,
   },
   followerInfo: {
     flex: 1,

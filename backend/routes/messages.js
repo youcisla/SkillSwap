@@ -3,6 +3,7 @@ const router = express.Router();
 const Message = require('../models/Message');
 const Chat = require('../models/Chat');
 const auth = require('../middleware/auth');
+const { emitToChat, emitToUser } = require('../utils/socketUtils');
 
 // Get messages for a chat
 router.get('/chat/:chatId', auth, async (req, res) => {
@@ -101,16 +102,31 @@ router.post('/', auth, async (req, res) => {
     // Populate message with sender info
     await message.populate('sender', 'name email profileImage');
 
+    const messageData = {
+      id: message._id,
+      senderId: message.sender._id,
+      receiverId: chat.participants.find(p => p.toString() !== message.sender._id.toString()),
+      content: message.content,
+      timestamp: message.createdAt,
+      isRead: message.readBy.includes(req.userId)
+    };
+
+    // Emit real-time message to chat participants
+    emitToChat(actualChatId, 'new-message', messageData);
+    
+    // Also emit to receiver's personal room for notifications
+    const targetReceiverId = messageData.receiverId;
+    if (targetReceiverId) {
+      emitToUser(targetReceiverId, 'new-message', {
+        ...messageData,
+        senderName: message.sender.name,
+        chatId: actualChatId
+      });
+    }
+
     res.status(201).json({
       success: true,
-      data: {
-        id: message._id,
-        senderId: message.sender._id,
-        receiverId: chat.participants.find(p => p.toString() !== message.sender._id.toString()),
-        content: message.content,
-        timestamp: message.createdAt,
-        isRead: message.readBy.includes(req.userId)
-      }
+      data: messageData
     });
   } catch (error) {
     console.error('Error sending message:', error);

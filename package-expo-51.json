@@ -1,0 +1,53 @@
+{
+  "name": "SkillSwap",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "clean": "clean-deps.bat && npm install",
+    "reset": "npx expo install --fix"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~3.2.1",
+    "@expo/vector-icons": "^14.0.0",
+    "@react-native-async-storage/async-storage": "1.23.1",
+    "@react-navigation/bottom-tabs": "^6.5.20",
+    "@react-navigation/drawer": "^6.6.15",
+    "@react-navigation/native": "^6.1.17",
+    "@react-navigation/stack": "^6.3.29",
+    "@reduxjs/toolkit": "^2.2.3",
+    "expo": "~51.0.8",
+    "expo-av": "~14.0.5",
+    "expo-camera": "~15.0.10",
+    "expo-constants": "~16.0.2",
+    "expo-haptics": "~13.0.1",
+    "expo-image-picker": "~15.0.5",
+    "expo-linear-gradient": "~13.0.2",
+    "expo-location": "~17.0.1",
+    "expo-notifications": "~0.28.9",
+    "expo-sqlite": "~14.0.3",
+    "expo-status-bar": "~1.12.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-native": "0.74.1",
+    "react-native-maps": "1.14.0",
+    "react-native-paper": "^5.12.3",
+    "react-native-safe-area-context": "4.10.1",
+    "react-native-screens": "3.31.1",
+    "react-native-vector-icons": "^10.0.3",
+    "react-native-web": "~0.19.10",
+    "react-redux": "^9.1.2",
+    "socket.io-client": "^4.7.5",
+    "react-native-reanimated": "~3.10.1",
+    "react-native-gesture-handler": "~2.16.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@types/react": "~18.2.45",
+    "typescript": "~5.3.3"
+  },
+  "private": true
+}

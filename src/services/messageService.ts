@@ -134,6 +134,19 @@ class MessageService {
       throw error;
     }
   }
+
+  async deleteChat(chatId: string): Promise<void> {
+    try {
+      const response = await ApiService.delete<ApiResponse<void>>(`/chats/${chatId}`);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete chat');
+      }
+    } catch (error) {
+      console.error('Delete chat error:', error);
+      throw error;
+    }
+  }
 }
 
 export const messageService = new MessageService();

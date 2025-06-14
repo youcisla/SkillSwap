@@ -1,23 +1,26 @@
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
 import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
+    Alert,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    View,
 } from 'react-native';
 import {
-  Avatar,
-  Button,
-  Card,
-  Chip,
-  FAB,
-  Paragraph,
-  Text,
-  Title,
+    Button,
+    Card,
+    Chip,
+    FAB,
+    Paragraph,
+    Text,
+    Title
 } from 'react-native-paper';
+import SafeAvatar from '../components/SafeAvatar';
+import { BulkActionsBar, SelectableItem, SelectionHeader } from '../components/ui/MultiSelection';
+import { useMultiSelection } from '../hooks/useMultiSelection';
 import { useAppDispatch, useAppSelector } from '../store';
-import { fetchSessions, updateSessionStatus } from '../store/slices/sessionSlice';
+import { cancelSession, fetchSessions, updateSessionStatus } from '../store/slices/sessionSlice';
 import { CalendarStackParamList, Session, SessionStatus } from '../types';
 
 type CalendarScreenNavigationProp = StackNavigationProp<CalendarStackParamList, 'CalendarMain'>;
@@ -33,6 +36,19 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
   const { users } = useAppSelector((state) => state.user);
 
   const [refreshing, setRefreshing] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [activeSection, setActiveSection] = useState<'upcoming' | 'past' | null>(null);
+
+  // Multi-selection hooks for different session types
+  const upcomingSelection = useMultiSelection<Session>(
+    (session) => session.id,
+    { allowSelectAll: true }
+  );
+
+  const pastSelection = useMultiSelection<Session>(
+    (session) => session.id,
+    { allowSelectAll: true }
+  );
 
   useEffect(() => {
     if (user?.id) {
@@ -104,11 +120,116 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
   const upcomingSessions = sessions.filter(isUpcoming);
   const pastSessions = sessions.filter(isPast);
 
+  const handleBulkCancel = async () => {
+    const selection = activeSection === 'upcoming' ? upcomingSelection : pastSelection;
+    const targetSessions = activeSection === 'upcoming' ? upcomingSessions : pastSessions;
+    const selectedSessions = targetSessions.filter(session => selection.isSelected(session));
+    
+    if (selectedSessions.length === 0) return;
+
+    Alert.alert(
+      'Cancel Sessions',
+      `Are you sure you want to cancel ${selectedSessions.length} session${selectedSessions.length === 1 ? '' : 's'}?`,
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Cancel All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await Promise.all(
+                selectedSessions.map(session => 
+                  dispatch(cancelSession({ 
+                    sessionId: session.id, 
+                    reason: 'Bulk cancellation' 
+                  })).unwrap()
+                )
+              );
+              selection.deselectAll();
+              setIsSelectionMode(false);
+              setActiveSection(null);
+            } catch (error) {
+              console.error('Failed to cancel sessions:', error);
+              Alert.alert('Error', 'Failed to cancel some sessions. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleBulkConfirm = async () => {
+    const selection = activeSection === 'upcoming' ? upcomingSelection : pastSelection;
+    const targetSessions = activeSection === 'upcoming' ? upcomingSessions : pastSessions;
+    const selectedSessions = targetSessions.filter(session => 
+      selection.isSelected(session) && session.status === SessionStatus.PENDING
+    );
+    
+    if (selectedSessions.length === 0) return;
+
+    Alert.alert(
+      'Confirm Sessions',
+      `Confirm ${selectedSessions.length} session${selectedSessions.length === 1 ? '' : 's'}?`,
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Confirm All',
+          onPress: async () => {
+            try {
+              await Promise.all(
+                selectedSessions.map(session => 
+                  dispatch(updateSessionStatus({ 
+                    sessionId: session.id, 
+                    status: SessionStatus.CONFIRMED 
+                  })).unwrap()
+                )
+              );
+              selection.deselectAll();
+              setIsSelectionMode(false);
+              setActiveSection(null);
+              // Refresh sessions to reflect changes
+              await loadSessions();
+            } catch (error) {
+              console.error('Failed to confirm sessions:', error);
+              Alert.alert('Error', 'Failed to confirm some sessions. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleStartSelection = (section: 'upcoming' | 'past') => {
+    setIsSelectionMode(true);
+    setActiveSection(section);
+  };
+
+  const handleCancelSelection = () => {
+    upcomingSelection.deselectAll();
+    pastSelection.deselectAll();
+    setIsSelectionMode(false);
+    setActiveSection(null);
+  };
+
+  const getCurrentSelection = () => {
+    if (activeSection === 'upcoming') return upcomingSelection;
+    if (activeSection === 'past') return pastSelection;
+    return null;
+  };
+
+  const getCurrentSessions = () => {
+    if (activeSection === 'upcoming') return upcomingSessions;
+    if (activeSection === 'past') return pastSessions;
+    return [];
+  };
+
   const renderSessionCard = (session: Session) => {
     const otherParticipant = getOtherParticipant(session);
     const isTeacher = session.teacherId === user?.id;
+    const isPendingSession = session.status === SessionStatus.PENDING;
+    const currentSelection = getCurrentSelection();
 
-    return (
+    const sessionContent = (
       <Card key={session.id} style={styles.sessionCard}>
         <Card.Content>
           <View style={styles.sessionHeader}>
@@ -127,9 +248,11 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.participantInfo}>
-            <Avatar.Image 
+            <SafeAvatar 
               size={40} 
-              source={{ uri: otherParticipant?.profileImage || `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="#6200ea"/><text x="50%" y="50%" text-anchor="middle" dy="0.35em" fill="white" font-size="20" font-family="Arial">${(otherParticipant?.name || 'U').charAt(0).toUpperCase()}</text></svg>`)}` }}
+              source={otherParticipant?.profileImage ? { uri: otherParticipant.profileImage } : undefined}
+              fallbackText={otherParticipant?.name || 'U'}
+              style={styles.participantAvatar}
             />
             <View style={styles.participantDetails}>
               <Text style={styles.participantName}>
@@ -147,40 +270,57 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
             <Paragraph style={styles.notes}>{session.notes}</Paragraph>
           )}
 
-          <View style={styles.sessionActions}>
-            <Button 
-              mode="outlined" 
-              compact
-              onPress={() => navigation.navigate('SessionDetails', { sessionId: session.id })}
-            >
-              View Details
-            </Button>
-            {session.status === SessionStatus.PENDING && (
+          {!isSelectionMode && (
+            <View style={styles.sessionActions}>
               <Button 
-                mode="contained" 
+                mode="outlined" 
                 compact
-                style={styles.actionButton}
-                onPress={async () => {
-                  try {
-                    await dispatch(updateSessionStatus({
-                      sessionId: session.id,
-                      status: SessionStatus.CONFIRMED
-                    })).unwrap();
-                    
-                    // Refresh sessions to reflect changes
-                    await loadSessions();
-                  } catch (error) {
-                    console.error('Failed to confirm/accept session:', error);
-                  }
-                }}
+                onPress={() => navigation.navigate('SessionDetails', { sessionId: session.id })}
               >
-                {isTeacher ? 'Confirm' : 'Accept'}
+                View Details
               </Button>
-            )}
-          </View>
+              {isPendingSession && (
+                <Button 
+                  mode="contained" 
+                  compact
+                  style={styles.actionButton}
+                  onPress={async () => {
+                    try {
+                      await dispatch(updateSessionStatus({
+                        sessionId: session.id,
+                        status: SessionStatus.CONFIRMED
+                      })).unwrap();
+                      
+                      // Refresh sessions to reflect changes
+                      await loadSessions();
+                    } catch (error) {
+                      console.error('Failed to confirm/accept session:', error);
+                    }
+                  }}
+                >
+                  {isTeacher ? 'Confirm' : 'Accept'}
+                </Button>
+              )}
+            </View>
+          )}
         </Card.Content>
       </Card>
     );
+
+    if (isSelectionMode && currentSelection) {
+      return (
+        <SelectableItem
+          key={session.id}
+          isSelected={currentSelection.isSelected(session)}
+          onToggleSelection={() => currentSelection.toggleSelection(session)}
+          onPress={() => navigation.navigate('SessionDetails', { sessionId: session.id })}
+        >
+          {sessionContent}
+        </SelectableItem>
+      );
+    }
+
+    return sessionContent;
   };
 
   if (loading && sessions.length === 0) {
@@ -201,7 +341,31 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       >
         {/* Upcoming Sessions */}
         <View style={styles.section}>
-          <Title style={styles.sectionTitle}>Upcoming Sessions</Title>
+          <View style={styles.sectionHeaderContainer}>
+            <Title style={styles.sectionTitle}>Upcoming Sessions</Title>
+            {!isSelectionMode && upcomingSessions.length > 0 && (
+              <Button
+                mode="outlined"
+                onPress={() => handleStartSelection('upcoming')}
+                compact
+              >
+                Select
+              </Button>
+            )}
+          </View>
+          
+          {/* Selection Header for Upcoming */}
+          {isSelectionMode && activeSection === 'upcoming' && (
+            <SelectionHeader
+              selectedCount={upcomingSelection.getSelectedCount()}
+              totalCount={upcomingSessions.length}
+              onSelectAll={() => upcomingSelection.selectAll(upcomingSessions)}
+              onDeselectAll={() => upcomingSelection.deselectAll()}
+              onCancel={handleCancelSelection}
+              isAllSelected={upcomingSelection.isAllSelected(upcomingSessions)}
+            />
+          )}
+          
           {upcomingSessions.length > 0 ? (
             upcomingSessions.map(renderSessionCard)
           ) : (
@@ -217,7 +381,31 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Past Sessions */}
         <View style={styles.section}>
-          <Title style={styles.sectionTitle}>Past Sessions</Title>
+          <View style={styles.sectionHeaderContainer}>
+            <Title style={styles.sectionTitle}>Past Sessions</Title>
+            {!isSelectionMode && pastSessions.length > 0 && (
+              <Button
+                mode="outlined"
+                onPress={() => handleStartSelection('past')}
+                compact
+              >
+                Select
+              </Button>
+            )}
+          </View>
+          
+          {/* Selection Header for Past */}
+          {isSelectionMode && activeSection === 'past' && (
+            <SelectionHeader
+              selectedCount={pastSelection.getSelectedCount()}
+              totalCount={pastSessions.length}
+              onSelectAll={() => pastSelection.selectAll(pastSessions)}
+              onDeselectAll={() => pastSelection.deselectAll()}
+              onCancel={handleCancelSelection}
+              isAllSelected={pastSelection.isAllSelected(pastSessions)}
+            />
+          )}
+          
           {pastSessions.length > 0 ? (
             pastSessions.slice(0, 5).map(renderSessionCard)
           ) : (
@@ -243,6 +431,30 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           )}
         </View>
       </ScrollView>
+
+      {/* Bulk Actions Bar */}
+      {isSelectionMode && activeSection && (
+        <BulkActionsBar
+          selectedCount={getCurrentSelection()?.getSelectedCount() || 0}
+          actions={[
+            {
+              id: 'confirm',
+              title: 'Confirm Selected',
+              icon: 'check',
+              onPress: handleBulkConfirm,
+              disabled: (getCurrentSelection()?.getSelectedCount() || 0) === 0,
+            },
+            {
+              id: 'cancel',
+              title: 'Cancel Selected',
+              icon: 'close',
+              onPress: handleBulkCancel,
+              destructive: true,
+              disabled: (getCurrentSelection()?.getSelectedCount() || 0) === 0,
+            },
+          ]}
+        />
+      )}
 
       <FAB
         style={styles.fab}
@@ -273,11 +485,17 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 16,
   },
-  sectionTitle: {
+  sectionHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginHorizontal: 16,
     marginVertical: 8,
+  },
+  sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    flex: 1,
   },
   sessionCard: {
     marginHorizontal: 16,
@@ -313,6 +531,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  participantAvatar: {
+    borderRadius: 20,
   },
   participantDetails: {
     marginLeft: 12,
@@ -361,6 +582,13 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
+  },
+  bulkActionsBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    elevation: 4,
   },
 });
 

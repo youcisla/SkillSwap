@@ -76,6 +76,18 @@ export const findOrCreateChat = createAsyncThunk(
   }
 );
 
+export const deleteChat = createAsyncThunk(
+  'messages/deleteChat',
+  async (chatId: string, { rejectWithValue }) => {
+    try {
+      await messageService.deleteChat(chatId);
+      return chatId;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const messageSlice = createSlice({
   name: 'messages',
   initialState,
@@ -166,6 +178,12 @@ const messageSlice = createSlice({
             messageIds.includes(message.id) ? { ...message, isRead: true } : message
           );
         }
+      })
+      // Delete chat
+      .addCase(deleteChat.fulfilled, (state, action: PayloadAction<string>) => {
+        const chatId = action.payload;
+        state.chats = state.chats.filter(chat => chat.id !== chatId);
+        delete state.messages[chatId];
       });
   },
 });

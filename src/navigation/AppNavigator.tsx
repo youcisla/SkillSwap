@@ -15,7 +15,7 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import AddSkillScreen from '../screens/skills/AddSkillScreen';
 import SkillManagementScreen from '../screens/skills/SkillManagementScreen';
-import MainTabNavigator from './MainTabNavigator';
+import OptimizedOptimizedMainTabNavigator from './OptimizedOptimizedMainTabNavigator';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -48,7 +48,7 @@ const AppNavigator: React.FC = () => {
     );
   }
 
-  console.log('🧭 Navigation decision:', isAuthenticated ? 'MainTabNavigator' : 'Auth screens');
+  console.log('🧭 Navigation decision:', isAuthenticated ? 'OptimizedMainTabNavigator' : 'Auth screens');
 
   return (
     <NavigationContainer>
@@ -60,7 +60,7 @@ const AppNavigator: React.FC = () => {
           <>
             <Stack.Screen 
               name="Main" 
-              component={MainTabNavigator}
+              component={OptimizedMainTabNavigator}
               options={{ headerShown: false }}
             />
             <Stack.Screen 

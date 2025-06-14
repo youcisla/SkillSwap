@@ -2,6 +2,7 @@ const express = require('express');
 const Follow = require('../models/Follow');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { emitNewFollower } = require('../utils/socketUtils');
 
 const router = express.Router();
 
@@ -66,6 +67,17 @@ router.post('/', auth, async (req, res) => {
         $inc: { followersCount: 1 } 
       })
     ]);
+
+    // Get follower info for notification
+    const follower = await User.findById(followerId).select('name');
+    
+    // Emit real-time notification to the followed user
+    if (follower) {
+      emitNewFollower(followingId, {
+        followerId,
+        followerName: follower.name
+      });
+    }
 
     res.status(201).json({
       success: true,

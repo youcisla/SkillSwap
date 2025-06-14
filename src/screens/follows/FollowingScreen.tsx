@@ -8,15 +8,15 @@ import {
     View,
 } from 'react-native';
 import {
-    Avatar,
     Button,
     Card,
     Chip,
     Paragraph,
     Searchbar,
     Text,
-    Title,
+    Title
 } from 'react-native-paper';
+import SafeAvatar from '../../components/SafeAvatar';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchFollowing, unfollowUser } from '../../store/slices/followSlice';
 import { FollowUser, ProfileStackParamList } from '../../types';
@@ -97,11 +97,11 @@ const FollowingScreen: React.FC<Props> = ({ navigation, route }) => {
     <Card style={styles.followingCard}>
       <Card.Content>
         <View style={styles.followingHeader}>
-          <Avatar.Image 
+          <SafeAvatar 
             size={50} 
-            source={{ 
-              uri: followedUser.profileImage || `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50"><rect width="50" height="50" fill="#6200ea"/><text x="50%" y="50%" text-anchor="middle" dy="0.35em" fill="white" font-size="24" font-family="Arial">${followedUser.name.charAt(0).toUpperCase()}</text></svg>`)}` 
-            }}
+            source={followedUser.profileImage ? { uri: followedUser.profileImage } : undefined}
+            fallbackText={followedUser.name}
+            style={styles.followingAvatar}
           />
           <View style={styles.followingInfo}>
             <Title style={styles.followingName}>{followedUser.name}</Title>
@@ -233,6 +233,9 @@ const styles = StyleSheet.create({
   followingHeader: {
     flexDirection: 'row',
     marginBottom: 12,
+  },
+  followingAvatar: {
+    borderRadius: 25,
   },
   followingInfo: {
     flex: 1,
