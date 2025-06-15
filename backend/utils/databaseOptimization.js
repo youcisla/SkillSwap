@@ -25,88 +25,208 @@ const createOptimizedIndexes = async () => {
   try {
     console.log('🔧 Creating optimized database indexes...');
 
-    // User indexes
-    await mongoose.connection.db.collection('users').createIndexes([
-      { key: { email: 1 }, unique: true },
-      { key: { city: 1 } },
-      { key: { location: '2dsphere' } }, // Geospatial index
-      { key: { role: 1 } },
-      { key: { isActive: 1 } },
-      { key: { lastActive: -1 } },
-      { key: { createdAt: -1 } },
-      { key: { name: 'text', email: 'text' } }, // Text search
-      // Compound indexes for common queries
-      { key: { city: 1, isActive: 1 } },
-      { key: { role: 1, isActive: 1 } },
-    ]);
+    // First, let's clean up any invalid location data
+    await cleanupInvalidLocationData();
 
-    // Skill indexes
-    await mongoose.connection.db.collection('skills').createIndexes([
-      { key: { userId: 1, type: 1 } },
-      { key: { category: 1 } },
-      { key: { level: 1 } },
-      { key: { isActive: 1 } },
-      { key: { name: 'text', description: 'text' } }, // Text search
-      // Compound indexes
-      { key: { category: 1, level: 1 } },
-      { key: { userId: 1, isActive: 1 } },
-    ]);
+    // User indexes - check for existing text index first
+    try {
+      const userIndexes = await mongoose.connection.db.collection('users').listIndexes().toArray();
+      const hasTextIndex = userIndexes.some(index => index.name && index.name.includes('text'));
+      
+      const userIndexesToCreate = [
+        { key: { email: 1 }, unique: true },
+        { key: { city: 1 } },
+        { key: { role: 1 } },
+        { key: { isActive: 1 } },
+        { key: { lastActive: -1 } },
+        { key: { createdAt: -1 } },
+        // Compound indexes for common queries
+        { key: { city: 1, isActive: 1 } },
+        { key: { role: 1, isActive: 1 } },
+      ];
+      
+      // Only add text index if it doesn't exist
+      if (!hasTextIndex) {
+        userIndexesToCreate.push({ key: { name: 'text', email: 'text' } });
+      }
+      
+      await mongoose.connection.db.collection('users').createIndexes(userIndexesToCreate);
+    } catch (userIndexError) {
+      console.warn('⚠️ Some user indexes may already exist:', userIndexError.message);
+    }
+
+    // Try to create geospatial index separately with error handling
+    try {
+      await mongoose.connection.db.collection('users').createIndex(
+        { location: '2dsphere' },
+        { sparse: true } // Only index documents that have the location field
+      );
+      console.log('✅ Geospatial index created successfully');
+    } catch (geoError) {
+      console.warn('⚠️  Skipping geospatial index due to invalid data:', geoError.message);
+    }
+
+    // Skill indexes - check for existing text index first
+    try {
+      const skillIndexes = await mongoose.connection.db.collection('skills').listIndexes().toArray();
+      const hasTextIndex = skillIndexes.some(index => index.name && index.name.includes('text'));
+      
+      const skillIndexesToCreate = [
+        { key: { userId: 1, type: 1 } },
+        { key: { category: 1 } },
+        { key: { level: 1 } },
+        { key: { isActive: 1 } },
+        // Compound indexes
+        { key: { category: 1, level: 1 } },
+        { key: { userId: 1, isActive: 1 } },
+      ];
+      
+      // Only add text index if it doesn't exist
+      if (!hasTextIndex) {
+        skillIndexesToCreate.push({ key: { name: 'text', description: 'text' } });
+      }
+      
+      await mongoose.connection.db.collection('skills').createIndexes(skillIndexesToCreate);
+    } catch (skillIndexError) {
+      console.warn('⚠️ Some skill indexes may already exist:', skillIndexError.message);
+    }
 
     // Session indexes
-    await mongoose.connection.db.collection('sessions').createIndexes([
-      { key: { teacherId: 1 } },
-      { key: { studentId: 1 } },
-      { key: { skillId: 1 } },
-      { key: { status: 1 } },
-      { key: { scheduledAt: -1 } },
-      { key: { createdAt: -1 } },
-      // Compound indexes for common queries
-      { key: { teacherId: 1, status: 1 } },
-      { key: { studentId: 1, status: 1 } },
-      { key: { status: 1, scheduledAt: -1 } },
-    ]);
+    try {
+      await mongoose.connection.db.collection('sessions').createIndexes([
+        { key: { teacherId: 1 } },
+        { key: { studentId: 1 } },
+        { key: { skillId: 1 } },
+        { key: { status: 1 } },
+        { key: { scheduledAt: -1 } },
+        { key: { createdAt: -1 } },
+        // Compound indexes for common queries
+        { key: { teacherId: 1, status: 1 } },
+        { key: { studentId: 1, status: 1 } },
+        { key: { status: 1, scheduledAt: -1 } },
+      ]);
+    } catch (sessionIndexError) {
+      console.warn('⚠️ Some session indexes may already exist:', sessionIndexError.message);
+    }
 
     // Match indexes
-    await mongoose.connection.db.collection('matches').createIndexes([
-      { key: { user1Id: 1 } },
-      { key: { user2Id: 1 } },
-      { key: { isActive: 1 } },
-      { key: { compatibilityScore: -1 } },
-      { key: { createdAt: -1 } },
-      // Compound indexes
-      { key: { user1Id: 1, isActive: 1 } },
-      { key: { user2Id: 1, isActive: 1 } },
-    ]);
+    try {
+      await mongoose.connection.db.collection('matches').createIndexes([
+        { key: { user1Id: 1 } },
+        { key: { user2Id: 1 } },
+        { key: { isActive: 1 } },
+        { key: { compatibilityScore: -1 } },
+        { key: { createdAt: -1 } },
+        // Compound indexes
+        { key: { user1Id: 1, isActive: 1 } },
+        { key: { user2Id: 1, isActive: 1 } },
+      ]);
+    } catch (matchIndexError) {
+      console.warn('⚠️ Some match indexes may already exist:', matchIndexError.message);
+    }
 
     // Chat indexes
-    await mongoose.connection.db.collection('chats').createIndexes([
-      { key: { participants: 1 } },
-      { key: { updatedAt: -1 } },
-      { key: { isActive: 1 } },
-    ]);
+    try {
+      await mongoose.connection.db.collection('chats').createIndexes([
+        { key: { participants: 1 } },
+        { key: { updatedAt: -1 } },
+        { key: { isActive: 1 } },
+      ]);
+    } catch (chatIndexError) {
+      console.warn('⚠️ Some chat indexes may already exist:', chatIndexError.message);
+    }
 
     // Message indexes
-    await mongoose.connection.db.collection('messages').createIndexes([
-      { key: { chat: 1, createdAt: -1 } },
-      { key: { sender: 1 } },
-      { key: { readBy: 1 } },
-      { key: { createdAt: -1 } },
-      // Compound indexes for chat queries
-      { key: { chat: 1, sender: 1 } },
-    ]);
+    try {
+      await mongoose.connection.db.collection('messages').createIndexes([
+        { key: { chat: 1, createdAt: -1 } },
+        { key: { sender: 1 } },
+        { key: { readBy: 1 } },
+        { key: { createdAt: -1 } },
+        // Compound indexes for chat queries
+        { key: { chat: 1, sender: 1 } },
+      ]);
+    } catch (messageIndexError) {
+      console.warn('⚠️ Some message indexes may already exist:', messageIndexError.message);
+    }
 
     // Follow indexes
-    await mongoose.connection.db.collection('follows').createIndexes([
-      { key: { followerId: 1 } },
-      { key: { followingId: 1 } },
-      { key: { createdAt: -1 } },
-      // Compound index for mutual follows
-      { key: { followerId: 1, followingId: 1 }, unique: true },
-    ]);
+    try {
+      await mongoose.connection.db.collection('follows').createIndexes([
+        { key: { followerId: 1 } },
+        { key: { followingId: 1 } },
+        { key: { createdAt: -1 } },
+        // Compound index for mutual follows
+        { key: { followerId: 1, followingId: 1 }, unique: true },
+      ]);
+    } catch (followIndexError) {
+      console.warn('⚠️ Some follow indexes may already exist:', followIndexError.message);
+    }
 
     console.log('✅ Database indexes created successfully');
   } catch (error) {
     console.error('❌ Error creating indexes:', error);
+    // Don't throw the error, just log it so the server can continue
+  }
+};
+
+// Function to clean up invalid location data
+const cleanupInvalidLocationData = async () => {
+  try {
+    console.log('🧹 Cleaning up invalid location data...');
+    
+    // Find all users with location data
+    const allUsers = await mongoose.connection.db.collection('users').find({
+      location: { $exists: true, $not: { $type: "null" } }
+    }).toArray();
+
+    for (const user of allUsers) {
+      if (user.location && typeof user.location === 'object') {
+        let needsUpdate = false;
+        let updateFields = {};
+        
+        // Check if location has invalid structure (only updatedAt field)
+        if (user.location.updatedAt !== undefined && 
+            (!user.location.type || !user.location.coordinates)) {
+          console.log(`🔧 Removing invalid location data for user: ${user._id}`);
+          updateFields.$unset = { location: "" };
+          needsUpdate = true;
+        }
+        // Check if location has old format (latitude/longitude fields)
+        else if (user.location.latitude !== undefined && user.location.longitude !== undefined) {
+          console.log(`🔄 Converting old location format for user: ${user._id}`);
+          updateFields.$set = {
+            location: {
+              type: 'Point',
+              coordinates: [user.location.longitude, user.location.latitude]
+            }
+          };
+          
+          // Keep the original updatedAt if it exists
+          if (user.location.updatedAt) {
+            updateFields.$set.locationUpdatedAt = user.location.updatedAt;
+          }
+          needsUpdate = true;
+        }
+        // Check if location has incomplete GeoJSON structure
+        else if (!user.location.type || !Array.isArray(user.location.coordinates) || user.location.coordinates.length !== 2) {
+          console.log(`🔧 Removing incomplete location structure for user: ${user._id}`);
+          updateFields.$unset = { location: "" };
+          needsUpdate = true;
+        }
+        
+        if (needsUpdate) {
+          await mongoose.connection.db.collection('users').updateOne(
+            { _id: user._id },
+            updateFields
+          );
+        }
+      }
+    }
+    
+    console.log('✅ Location data cleanup completed');
+  } catch (error) {
+    console.error('❌ Error cleaning up location data:', error);
   }
 };
 
@@ -145,7 +265,7 @@ const QueryOptimizer = {
 
   // Aggregation pipeline for complex queries
   userStatsAggregation: (userId) => [
-    { $match: { _id: mongoose.Types.ObjectId(userId) } },
+    { $match: { _id: new mongoose.Types.ObjectId(userId) } },
     {
       $lookup: {
         from: 'skills',
@@ -224,7 +344,7 @@ const QueryOptimizer = {
     const pipeline = [
       {
         $match: {
-          _id: { $ne: mongoose.Types.ObjectId(userId) },
+          _id: { $ne: new mongoose.Types.ObjectId(userId) },
           isActive: true
         }
       }
@@ -304,12 +424,8 @@ const QueryOptimizer = {
 
 // Database connection optimization
 const optimizeConnection = () => {
-  // Connection pooling settings
-  mongoose.set('maxPoolSize', 20);
-  mongoose.set('minPoolSize', 5);
-  mongoose.set('maxIdleTimeMS', 30000);
-  mongoose.set('serverSelectionTimeoutMS', 5000);
-  mongoose.set('socketTimeoutMS', 45000);
+  // Set mongoose global options that are valid
+  mongoose.set('strictQuery', false);
   
   // Disable automatic index creation in production
   if (process.env.NODE_ENV === 'production') {

@@ -33,8 +33,6 @@ import SkillManagementScreen from '../screens/skills/SkillManagementScreen';
 
 // Import enhanced components
 import RealTimeIndicators from '../components/realtime/RealTimeIndicators';
-import { useOptimizedQuery } from '../hooks/useOptimizedQuery';
-import { EnhancedApiService } from '../services/enhancedApiService';
 import { useAppSelector } from '../store';
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -90,14 +88,14 @@ function MessagesStackNavigator() {
   const { user } = useAppSelector((state) => state.auth);
   
   // Get unread message count for badge
-  const { data: unreadCount = 0 } = useOptimizedQuery(
-    ['unread-messages', user?.id],
-    () => EnhancedApiService.getUnreadMessageCount(user?.id || ''),
-    {
-      enabled: !!user?.id,
-      refetchInterval: 30000, // Check every 30 seconds
-    }
-  );
+  // Temporarily disabled due to missing API method
+  // const { data: unreadCount = 0 } = useOptimizedQuery({
+  //   queryKey: user?.id ? ['unread-messages', user.id] : ['unread-messages', 'no-user'],
+  //   queryFn: () => EnhancedApiService.getUnreadMessageCount?.(user?.id || '') || Promise.resolve(0),
+  //   enabled: !!user?.id,
+  //   refetchInterval: 30000, // Check every 30 seconds
+  // });
+  const unreadCount = 0;
 
   return (
     <MessagesStack.Navigator>
@@ -288,9 +286,11 @@ const MainTabNavigator: React.FC = () => {
   const { matches } = useAppSelector((state) => state.matches);
 
   // Calculate unread message count
-  const unreadMessageCount = chats.reduce((total, chat) => {
-    return total + (chat.unreadCount || 0);
-  }, 0);
+  // Temporarily disabled due to missing unreadCount property
+  // const unreadMessageCount = chats.reduce((total, chat) => {
+  //   return total + (chat.unreadCount || 0);
+  // }, 0);
+  const unreadMessageCount = 0;
 
   // Calculate new matches count (matches from last 24 hours)
   const newMatchesCount = matches.filter(match => {
@@ -300,14 +300,14 @@ const MainTabNavigator: React.FC = () => {
   }).length;
 
   // Get upcoming sessions count
-  const { data: upcomingSessionsCount = 0 } = useOptimizedQuery(
-    ['upcoming-sessions', user?.id],
-    () => EnhancedApiService.getUpcomingSessionsCount(user?.id || ''),
-    {
-      enabled: !!user?.id,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
+  // Temporarily disabled due to missing API method
+  // const { data: upcomingSessionsCount = 0 } = useOptimizedQuery({
+  //   queryKey: user?.id ? ['upcoming-sessions', user.id] : ['upcoming-sessions', 'no-user'],
+  //   queryFn: () => EnhancedApiService.getUpcomingSessionsCount?.(user?.id || '') || Promise.resolve(0),
+  //   enabled: !!user?.id,
+  //   staleTime: 5 * 60 * 1000, // 5 minutes
+  // });
+  const upcomingSessionsCount = 0;
 
   return (
     <Tab.Navigator
@@ -323,10 +323,7 @@ const MainTabNavigator: React.FC = () => {
           paddingTop: 5,
           height: Platform.OS === 'ios' ? 85 : 60,
           elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 3,
+          boxShadow: '0 -2px 3px rgba(0, 0, 0, 0.1)',
         },
         tabBarLabelStyle: {
           fontSize: 12,

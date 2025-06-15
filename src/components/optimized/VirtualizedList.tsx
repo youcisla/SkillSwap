@@ -83,7 +83,7 @@ const OptimizedListItem: React.FC<OptimizedListItemProps> = React.memo(
       Animated.timing(opacity, {
         toValue: isVisible ? 1 : 0.7,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
     }, [isVisible, opacity]);
 

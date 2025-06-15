@@ -8,9 +8,10 @@ interface OfflineAction {
   timestamp: number;
 }
 
-export const useOfflineSync = () => {
+export const useOfflineSync = (context?: string) => {
   const [isOnline, setIsOnline] = useState(true);
   const [pendingActions, setPendingActions] = useState<OfflineAction[]>([]);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   useEffect(() => {
     // Basic network monitoring - can be enhanced with NetInfo library
@@ -109,12 +110,27 @@ export const useOfflineSync = () => {
     await AsyncStorage.removeItem('offlineActions');
   };
 
+  // Sync data function for refreshing
+  const syncData = async () => {
+    try {
+      setLastSyncTime(new Date());
+      // In a real implementation, this would sync with the server
+      console.log(`Syncing data for context: ${context || 'default'}`);
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Sync error:', error);
+      throw error;
+    }
+  };
+
   return {
     isOnline,
     pendingActions,
     addOfflineAction,
     syncPendingActions,
     clearPendingActions,
+    syncData,
+    lastSyncTime,
   };
 };
 

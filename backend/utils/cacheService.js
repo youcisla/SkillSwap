@@ -126,6 +126,26 @@ class CacheService {
   generateKey(prefix, ...parts) {
     return `${prefix}:${parts.join(':')}`;
   }
+
+  // Check if cache is connected
+  getConnectionStatus() {
+    return this.isConnected;
+  }
+
+  // Disconnect from cache
+  async disconnect() {
+    try {
+      if (this.client && this.client.quit) {
+        await this.client.quit();
+      } else if (this.client && this.client.clear) {
+        this.client.clear();
+      }
+      this.isConnected = false;
+      console.log('✅ Cache disconnected');
+    } catch (error) {
+      console.error('Cache disconnect error:', error);
+    }
+  }
 }
 
 // In-memory cache fallback

@@ -24,7 +24,7 @@ import { EmptyState, LoadingState } from '../components/ui/LoadingState';
 import { BulkActionsBar, SelectableItem, SelectionHeader } from '../components/ui/MultiSelection';
 // Enhanced components and hooks
 import { VirtualizedList } from '../components/optimized/VirtualizedList';
-import { RealTimeIndicators } from '../components/realtime/RealTimeIndicators';
+import RealTimeIndicators from '../components/realtime/RealTimeIndicators';
 import { useAdvancedAnimation } from '../hooks/useAdvancedAnimation';
 import { useMultiSelection } from '../hooks/useMultiSelection';
 import { useOfflineSync } from '../hooks/useOfflineSync';
@@ -553,10 +553,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
       },
     }),
   },

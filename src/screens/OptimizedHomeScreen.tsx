@@ -6,21 +6,21 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    Animated,
-    RefreshControl,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    View,
+  Animated,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    Card,
-    Chip,
-    FAB,
-    Searchbar,
-    Text,
-    Title,
-    useTheme
+  Card,
+  Chip,
+  FAB,
+  Searchbar,
+  Text,
+  Title,
+  useTheme
 } from 'react-native-paper';
 import ErrorBoundary from '../components/common/ErrorBoundary';
 import SafeAvatar from '../components/SafeAvatar';
@@ -28,8 +28,8 @@ import EnhancedButton from '../components/ui/EnhancedButton';
 import { ActionCard, StatCard } from '../components/ui/EnhancedCard';
 import { EmptyState, SkeletonCard } from '../components/ui/LoadingState';
 // Enhanced components and hooks
-import { RealTimeIndicators } from '../components/realtime/RealTimeIndicators';
-import { useAdvancedAnimation } from '../hooks/useAdvancedAnimation';
+import RealTimeIndicators from '../components/realtime/RealTimeIndicators';
+import { useAdvancedAnimation, useFadeAnimation, useScaleAnimation } from '../hooks/useAdvancedAnimation';
 import { useEntranceAnimation } from '../hooks/useAnimation';
 import useHapticFeedback from '../hooks/useHapticFeedback';
 import { useOfflineSync } from '../hooks/useOfflineSync';
@@ -67,7 +67,9 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
 
   // Performance and UX hooks
   const { opacity, translateY } = useEntranceAnimation();
-  const { pulseAnimation, slideIn, fadeIn } = useAdvancedAnimation();
+  const { animatedValue: pulseAnimation, animate } = useAdvancedAnimation(1);
+  const { opacity: fadeOpacity, fadeIn } = useFadeAnimation(0);
+  const { scale: scaleValue } = useScaleAnimation(1);
   const { syncData, isOnline, lastSyncTime } = useOfflineSync('home');
 
   // Optimized data fetching with caching
@@ -77,7 +79,7 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
     refetch: refetchHome
   } = useOptimizedQuery(
     ['home-data', user?.id],
-    () => EnhancedApiService.getHomeData(user?.id || ''),
+    () => EnhancedApiService.get(`/users/${user?.id}/dashboard`),
     {
       enabled: !!user?.id,
       staleTime: 2 * 60 * 1000, // 2 minutes
@@ -110,14 +112,14 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
     try {
       // Load core data with parallel requests
       await Promise.all([
-        dispatch(fetchUserProfile()),
+        dispatch(fetchUserProfile(user.id)),
         dispatch(fetchUserSkills(user.id)),
         dispatch(fetchMatches(user.id))
       ]);
 
       // Load dynamic matches (can fail without affecting core functionality)
       try {
-        await dispatch(findDynamicMatches(user.id));
+        await dispatch(findDynamicMatches({ userId: user.id }));
       } catch (dynamicError) {
         console.warn('Dynamic matches failed, continuing without them:', dynamicError);
       }
@@ -161,7 +163,7 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
   // Enhanced FAB press with animation
   const handleFABPress = useCallback(() => {
     triggerHaptic('medium');
-    pulseAnimation();
+    animate(1.1);
     navigation.navigate('UserList', {});
   }, [triggerHaptic, pulseAnimation, navigation]);
 
@@ -233,8 +235,7 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
         {/* Real-time indicators */}
         <RealTimeIndicators
           showOnlineStatus={true}
-          showSyncStatus={true}
-          lastSyncTime={lastSyncTime}
+          userPresence="online"
         />
 
         <Animated.View style={{ opacity, transform: [{ translateY }], flex: 1 }}>
@@ -267,7 +268,7 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
                       {isOnline ? 'Connected and ready to learn' : 'Working offline'}
                     </Text>
                   </View>
-                  <Animated.View style={{ transform: [{ scale: fadeIn }] }}>
+                  <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
                     <SafeAvatar
                       size={50}
                       source={currentUser?.profileImage ? { uri: currentUser.profileImage } : undefined}
@@ -280,7 +281,7 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
             </LinearGradient>
 
             {/* Enhanced Search Section */}
-            <Animated.View style={[styles.searchSection, { transform: [{ translateX: slideIn }] }]}>
+            <Animated.View style={[styles.searchSection, { opacity }]}>
               <Searchbar
                 placeholder="Search for skills or users..."
                 onChangeText={setSearchQuery}
@@ -294,14 +295,14 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
             </Animated.View>
 
             {/* Enhanced Quick Stats */}
-            <Animated.View style={[styles.statsContainer, { transform: [{ scale: fadeIn }] }]}>
+            <Animated.View style={[styles.statsContainer, { transform: [{ scale: scaleValue }] }]}>
               <StatCard
                 title="Teaching"
                 value={teachSkills.length}
                 icon={<MaterialCommunityIcons name="account-voice" size={24} color={colors.success.main} />}
                 onPress={() => navigation.navigate('Profile')}
                 style={styles.statCard}
-                trend={teachSkills.length > 0 ? 'up' : 'neutral'}
+                trend={{ value: teachSkills.length, isPositive: teachSkills.length > 0 }}
               />
               <StatCard
                 title="Learning"
@@ -309,7 +310,7 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
                 icon={<MaterialCommunityIcons name="book-open-variant" size={24} color={colors.primary.main} />}
                 onPress={() => navigation.navigate('Profile')}
                 style={styles.statCard}
-                trend={learnSkills.length > 0 ? 'up' : 'neutral'}
+                trend={{ value: learnSkills.length, isPositive: learnSkills.length > 0 }}
               />
               <StatCard
                 title="Matches"
@@ -317,7 +318,7 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
                 icon={<MaterialCommunityIcons name="heart" size={24} color={colors.error.main} />}
                 onPress={() => navigation.navigate('Matches')}
                 style={styles.statCard}
-                trend={totalMatches > 0 ? 'up' : 'neutral'}
+                trend={{ value: totalMatches, isPositive: totalMatches > 0 }}
               />
             </Animated.View>
 
@@ -406,7 +407,7 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
                   </View>
                   <EnhancedButton
                     title="Manage Skills"
-                    onPress={() => navigation.navigate('SkillManagement')}
+                    onPress={() => navigation.navigate('Profile')}
                     variant="outline"
                     size="medium"
                     style={styles.sectionButton}
@@ -438,7 +439,7 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
                   </View>
                   <EnhancedButton
                     title="Find Teachers"
-                    onPress={() => navigation.navigate('UserList', { filter: 'teachers' })}
+                    onPress={() => navigation.navigate('UserList')}
                     variant="outline"
                     size="medium"
                     style={styles.sectionButton}
@@ -455,7 +456,7 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
                 action={
                   <EnhancedButton
                     title="Add Your First Skill"
-                    onPress={() => navigation.navigate('AddSkill', { type: 'teach' })}
+                    onPress={() => navigation.navigate('Profile')}
                     variant="primary"
                     size="large"
                   />

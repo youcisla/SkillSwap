@@ -137,8 +137,8 @@ const ContentModerationScreen: React.FC = () => {
       case 'pending': return '#ff9800';
       case 'reviewed': return '#2196f3';
       case 'resolved': return '#4caf50';
-      case 'dismissed': return '#757575';
-      default: return '#757575';
+      case 'dismissed': return '#9e9e9e';
+      default: return '#616161';
     }
   };
 

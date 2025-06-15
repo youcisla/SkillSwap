@@ -52,27 +52,19 @@ const lightTheme = {
   },
   shadows: {
     sm: {
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.22,
-      shadowRadius: 2.22,
+      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.22)',
       elevation: 3,
     },
     md: {
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25)',
       elevation: 5,
     },
     lg: {
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.30,
-      shadowRadius: 4.65,
+      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.30)',
       elevation: 8,
     },
     xl: {
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.37,
-      shadowRadius: 7.49,
+      boxShadow: '0 6px 16px rgba(0, 0, 0, 0.37)',
       elevation: 12,
     },
   },

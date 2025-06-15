@@ -33,12 +33,31 @@ const userSchema = new mongoose.Schema({
     default: null
   },
   location: {
-    latitude: Number,
-    longitude: Number,
-    updatedAt: {
-      type: Date,
-      default: Date.now
+    type: {
+      type: String,
+      enum: ['Point']
+    },
+    coordinates: {
+      type: [Number],
+      validate: {
+        validator: function(v) {
+          return Array.isArray(v) && v.length === 2;
+        },
+        message: 'Coordinates must be an array of exactly 2 numbers [longitude, latitude]'
+      }
+    },
+    validate: {
+      validator: function(v) {
+        // Allow null/undefined location
+        if (!v) return true;
+        // Require both type and coordinates if location is set
+        return v.type === 'Point' && Array.isArray(v.coordinates) && v.coordinates.length === 2;
+      },
+      message: 'Location must be a valid GeoJSON Point with type and coordinates'
     }
+  },
+  locationUpdatedAt: {
+    type: Date
   },
   skillsToTeach: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -108,6 +127,18 @@ const userSchema = new mongoose.Schema({
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
+  // Clean up invalid location data
+  if (this.location && (
+    !this.location.type || 
+    !this.location.coordinates || 
+    this.location.updatedAt !== undefined ||
+    (typeof this.location.type !== 'string') ||
+    !Array.isArray(this.location.coordinates)
+  )) {
+    console.log(`🔧 Cleaning invalid location data for user: ${this._id}`);
+    this.location = undefined;
+  }
+
   if (!this.isModified('password')) return next();
   
   try {
@@ -135,6 +166,29 @@ userSchema.methods.toJSON = function() {
   delete user.__v;
   
   return user;
+};
+
+// Helper method to set location data
+userSchema.methods.setLocation = function(latitude, longitude) {
+  if (latitude && longitude) {
+    this.location = {
+      type: 'Point',
+      coordinates: [parseFloat(longitude), parseFloat(latitude)]
+    };
+    this.locationUpdatedAt = new Date();
+  }
+};
+
+// Helper method to get location data
+userSchema.methods.getLocation = function() {
+  if (this.location && this.location.coordinates) {
+    return {
+      latitude: this.location.coordinates[1],
+      longitude: this.location.coordinates[0],
+      updatedAt: this.locationUpdatedAt
+    };
+  }
+  return null;
 };
 
 // Prevent model overwrite error during development

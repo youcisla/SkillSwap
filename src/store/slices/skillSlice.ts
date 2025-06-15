@@ -108,12 +108,12 @@ const skillSlice = createSlice({
         state.loading = false;
         console.log('✅ addSkill.fulfilled - added skill:', action.payload);
         console.log('✅ Skill type:', action.payload.type);
-        console.log('✅ Skill id:', action.payload.id || action.payload._id);
+        console.log('✅ Skill id:', action.payload.id || (action.payload as any)._id);
         
         // Ensure we have an id field
         const skillWithId = {
           ...action.payload,
-          id: action.payload.id || action.payload._id
+          id: action.payload.id || (action.payload as any)._id
         };
         
         state.skills.push(skillWithId);

@@ -64,12 +64,12 @@ const EnhancedButton: React.FC<EnhancedButtonProps> = ({
       Animated.timing(scaleAnim, {
         toValue: animations.scale.press,
         duration: animations.timing.fast,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(opacityAnim, {
         toValue: 0.8,
         duration: animations.timing.fast,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
   };
@@ -79,12 +79,12 @@ const EnhancedButton: React.FC<EnhancedButtonProps> = ({
       Animated.timing(scaleAnim, {
         toValue: 1,
         duration: animations.timing.fast,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(opacityAnim, {
         toValue: 1,
         duration: animations.timing.fast,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
   };

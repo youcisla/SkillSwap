@@ -24,7 +24,7 @@ const {
 
 const { initializeDatabase, createIndexes } = require('./utils/databaseOptimization');
 const { cacheService } = require('./utils/cacheService');
-const { socketUtils } = require('./utils/socketUtils');
+const { setSocketIO, getSocketIO, emitToUser, emitToChat } = require('./utils/socketUtils');
 
 // Performance optimization: Use cluster in production
 if (cluster.isMaster && process.env.NODE_ENV === 'production') {
@@ -79,7 +79,7 @@ async function startServer() {
     console.log('🚀 Starting SkillSwap Enhanced Server...');
     
     // Connect to MongoDB with optimizations
-    await connectToMongoDB();
+    const dbConnected = await connectToMongoDB();
     
     // Initialize cache service
     await cacheService.connect();
@@ -119,8 +119,15 @@ async function startServer() {
       console.log(`✅ Server running on port ${PORT}`);
       console.log(`🏠 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🔧 Worker PID: ${process.pid}`);
-      console.log(`💾 Database: Connected`);
-      console.log(`⚡ Cache: ${cacheService.isConnected() ? 'Connected' : 'Disconnected'}`);
+      console.log(`💾 Database: ${dbConnected ? 'Connected' : 'Disconnected (Limited Mode)'}`);
+      console.log(`⚡ Cache: ${cacheService.getConnectionStatus() ? 'Connected' : 'Disconnected'}`);
+      console.log(`🌐 Server URL: http://localhost:${PORT}`);
+      console.log(`📊 Health Check: http://localhost:${PORT}/api/health`);
+      
+      if (!dbConnected) {
+        console.log('\n⚠️  WARNING: Running in limited mode without database');
+        console.log('   📖 Run setup instructions above to connect to MongoDB');
+      }
     });
 
     // Graceful shutdown
@@ -132,29 +139,60 @@ async function startServer() {
   }
 }
 
-// Enhanced MongoDB connection with optimization
+// Enhanced MongoDB connection with optimization and better error handling
 async function connectToMongoDB() {
+  const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/skillswap';
+  console.log(`📡 Attempting to connect to MongoDB: ${mongoURI}`);
+  
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/skillswap';
-    
     await mongoose.connect(mongoURI, {
-      maxPoolSize: 10, // Maintain up to 10 socket connections
       serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-      autoIndex: process.env.NODE_ENV !== 'production', // Don't build indexes in production
+      maxPoolSize: 10, // Maintain up to 10 socket connections
+      minPoolSize: 5, // Maintain a minimum of 5 socket connections
+      maxIdleTimeMS: 30000, // Close connections after 30 seconds
+      connectTimeoutMS: 10000, // Give up initial connection after 10 seconds
     });
 
-    console.log('✅ Connected to MongoDB');
+    console.log('✅ Connected to MongoDB successfully');
+    console.log(`📊 Database: ${mongoose.connection.db.databaseName}`);
+    console.log(`🔗 Connection state: ${mongoose.connection.readyState}`);
     
     // Initialize database with indexes and optimizations
     await initializeDatabase();
     await createIndexes();
     
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
-    throw error;
+    console.error('❌ MongoDB connection failed:', error.message);
+    
+    // Provide helpful error messages and solutions
+    if (error.message.includes('ECONNREFUSED')) {
+      console.error('\n💡 MongoDB Connection Solutions:');
+      console.error('   1. 🔧 Install MongoDB locally:');
+      console.error('      • Download from: https://www.mongodb.com/try/download/community');
+      console.error('      • Or run: setup-mongodb.bat (from project root)');
+      console.error('   2. 🐳 Use Docker:');
+      console.error('      • Run: setup-mongodb-docker.bat');
+      console.error('      • Or: docker run -d -p 27017:27017 --name skillswap-mongo mongo');
+      console.error('   3. ☁️  Use MongoDB Atlas (cloud):');
+      console.error('      • Visit: https://www.mongodb.com/atlas/database');
+      console.error('      • Update MONGODB_URI in .env file');
+      console.error('   4. 🎯 Test connection: node test-mongodb.js');
+      console.error('\n⚠️  Server will continue without database (limited functionality)');
+    } else if (error.message.includes('authentication')) {
+      console.error('\n🔐 Authentication Error:');
+      console.error('   • Check your MongoDB username/password in MONGODB_URI');
+      console.error('   • Ensure your IP is whitelisted (for MongoDB Atlas)');
+    } else {
+      console.error('\n❓ Unexpected error. Check your MongoDB configuration.');
+    }
+    
+    // Don't throw the error - let the server start without database
+    console.error('\n🚀 Starting server in limited mode...');
+    return false;
   }
+  
+  return true;
 }
 
 // Setup API routes with enhanced middleware
@@ -194,7 +232,7 @@ function setupRoutes(app) {
 // Enhanced Socket.IO setup with real-time features
 function setupEnhancedSocket(io) {
   // Make io available to other modules
-  socketUtils.setIO(io);
+  setSocketIO(io);
   
   // Enhanced connection handling
   io.on('connection', (socket) => {

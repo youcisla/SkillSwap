@@ -10,10 +10,20 @@ const router = express.Router();
 // Get matches for a user
 router.get('/user/:userId', auth, async (req, res) => {
   try {
+    const { userId } = req.params;
+    
+    // Validate userId
+    if (!userId || userId === 'undefined' || userId === 'null' || !/^[0-9a-fA-F]{24}$/.test(userId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or missing user ID'
+      });
+    }
+
     const matches = await Match.find({
       $or: [
-        { user1Id: req.params.userId },
-        { user2Id: req.params.userId }
+        { user1Id: userId },
+        { user2Id: userId }
       ],
       isActive: true
     })
@@ -106,6 +116,14 @@ router.get('/dynamic', auth, async (req, res) => {
       latitude,
       longitude 
     } = req.query;
+
+    // Validate userId
+    if (!userId || userId === 'undefined' || userId === 'null' || !/^[0-9a-fA-F]{24}$/.test(userId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or missing user ID'
+      });
+    }
 
     console.log('🔍 Dynamic matching request:', {
       userId,
@@ -289,6 +307,14 @@ router.get('/find/:userId', auth, async (req, res) => {
   try {
     const { maxDistance = 50, skillCategories, minCompatibilityScore = 60 } = req.query;
     const userId = req.params.userId;
+
+    // Validate userId
+    if (!userId || userId === 'undefined' || userId === 'null' || !/^[0-9a-fA-F]{24}$/.test(userId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or missing user ID'
+      });
+    }
 
     // Get user's skills
     const userTeachSkills = await Skill.find({ userId, type: 'teach', isActive: true });

@@ -135,9 +135,9 @@ export type RootStackParamList = {
   ContentModeration: undefined;
   SystemSettings: undefined;
   UserList: { skillId?: string };
-  Chat: { chatId: string; otherUserId: string };
-  MatchChat: { chatId: string; otherUserId: string };
-  MessageChat: { chatId: string; otherUserId: string };
+  Chat: { chatId: string; otherUserId: string; otherUserName?: string };
+  MatchChat: { chatId: string; otherUserId: string; otherUserName?: string };
+  MessageChat: { chatId: string; otherUserId: string; otherUserName?: string };
   ChatList: undefined;
   SessionDetails: { sessionId: string };
   SessionRequest: { 
@@ -170,18 +170,18 @@ export type HomeStackParamList = {
   HomeMain: undefined;
   UserList: { skillId?: string };
   UserProfile: { userId?: string };
-  HomeChat: { chatId: string; otherUserId: string };
+  HomeChat: { chatId: string; otherUserId: string; otherUserName?: string };
 };
 
 export type MatchesStackParamList = {
   MatchesMain: undefined;
   MatchUserProfile: { userId?: string };
-  MatchChat: { chatId: string; otherUserId: string };
+  MatchChat: { chatId: string; otherUserId: string; otherUserName?: string };
 };
 
 export type MessagesStackParamList = {
   MessagesMain: undefined;
-  MessageChat: { chatId: string; otherUserId: string };
+  MessageChat: { chatId: string; otherUserId: string; otherUserName?: string };
 };
 
 export type ProfileStackParamList = {

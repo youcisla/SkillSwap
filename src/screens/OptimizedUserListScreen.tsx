@@ -101,7 +101,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
     () => EnhancedApiService.searchUsers({
       query: debouncedSearchQuery,
       filter: filterType,
-      currentUserId: user?.id
+      currentUserId: user?.id || null
     }),
     {
       enabled: !!user?.id,
@@ -119,17 +119,26 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const loadUsers = useCallback(async () => {
     try {
+      const filters: any = {};
+      
+      // Only add filters if they have valid values
+      if (initialSkillId) {
+        filters.skillId = initialSkillId;
+      }
+      
+      if (user?.id) {
+        filters.currentUserId = user.id;
+      }
+      
       if (debouncedSearchQuery.trim()) {
         await dispatch(searchUsers({
           query: debouncedSearchQuery,
-          skillId: initialSkillId,
-          currentUserId: user?.id || ''
+          filters
         })).unwrap();
       } else {
         await dispatch(searchUsers({
           query: '',
-          skillId: initialSkillId,
-          currentUserId: user?.id || ''
+          filters
         })).unwrap();
       }
     } catch (error) {

@@ -90,7 +90,7 @@ export const usePullToRefresh = (onRefresh: () => Promise<void>) => {
     Animated.timing(translateY, {
       toValue: 50,
       duration: 200,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
 
     try {
@@ -100,7 +100,7 @@ export const usePullToRefresh = (onRefresh: () => Promise<void>) => {
       Animated.timing(translateY, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start(() => {
         refreshing.current = false;
       });

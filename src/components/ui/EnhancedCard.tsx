@@ -54,7 +54,7 @@ const EnhancedCard: React.FC<EnhancedCardProps> = ({
     if (animationEnabled && (onPress || onLongPress)) {
       Animated.spring(scaleAnim, {
         toValue: 0.98,
-        useNativeDriver: true,
+        useNativeDriver: false,
         speed: 50,
         bounciness: 4,
       }).start();
@@ -65,7 +65,7 @@ const EnhancedCard: React.FC<EnhancedCardProps> = ({
     if (animationEnabled && (onPress || onLongPress)) {
       Animated.spring(scaleAnim, {
         toValue: 1,
-        useNativeDriver: true,
+        useNativeDriver: false,
         speed: 50,
         bounciness: 4,
       }).start();

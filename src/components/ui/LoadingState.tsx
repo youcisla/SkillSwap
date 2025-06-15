@@ -48,12 +48,12 @@ const LoadingState: React.FC<LoadingStateProps> = ({
           Animated.timing(pulseAnim, {
             toValue: 1,
             duration: 1000,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.timing(pulseAnim, {
             toValue: 0.3,
             duration: 1000,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
         ])
       ).start();
@@ -64,7 +64,7 @@ const LoadingState: React.FC<LoadingStateProps> = ({
         Animated.timing(shimmerAnim, {
           toValue: 1,
           duration: 1500,
-          useNativeDriver: true,
+          useNativeDriver: false,
         })
       ).start();
     }

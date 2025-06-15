@@ -141,7 +141,8 @@ router.get('/:id',
   async (req, res) => {
     try {
       const user = await User.findById(req.params.id)
-        .populate('skills', 'name description level category')
+        .populate('skillsToTeach', 'name description level category')
+        .populate('skillsToLearn', 'name description level category')
         .select('-password -__v')
         .lean(); // Use lean() for better performance
 
@@ -206,7 +207,8 @@ router.put('/:id',
           runValidators: true,
           select: '-password -__v'
         }
-      ).populate('skills', 'name description level category');
+      ).populate('skillsToTeach', 'name description level category')
+       .populate('skillsToLearn', 'name description level category');
 
       if (!user) {
         return res.status(404).json({ 

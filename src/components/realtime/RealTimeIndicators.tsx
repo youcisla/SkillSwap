@@ -215,6 +215,65 @@ export const MessageStatus: React.FC<MessageStatusProps> = ({
   );
 };
 
+// Main component that combines all real-time indicators
+interface RealTimeIndicatorsProps {
+  showTypingIndicator?: boolean;
+  typingUser?: string;
+  showOnlineStatus?: boolean;
+  showOfflineIndicator?: boolean;
+  offlineMessage?: string;
+  userPresence?: 'online' | 'away' | 'busy' | 'offline';
+  messageStatus?: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+  style?: any;
+}
+
+const RealTimeIndicators: React.FC<RealTimeIndicatorsProps> = ({
+  showTypingIndicator = false,
+  typingUser,
+  showOnlineStatus = false,
+  showOfflineIndicator = false,
+  offlineMessage,
+  userPresence = 'offline',
+  messageStatus,
+  style,
+}) => {
+  return (
+    <View style={[styles.container, style]}>
+      {showTypingIndicator && (
+        <TypingIndicator
+          visible={true}
+          userName={typingUser}
+        />
+      )}
+      
+      {showOnlineStatus && (
+        <UserPresence
+          isOnline={userPresence === 'online'}
+          size={12}
+        />
+      )}
+      
+      {showOfflineIndicator && (
+        <UserPresence
+          isOnline={false}
+          size={12}
+          showText={true}
+          lastSeen={new Date()} // Assuming last seen is now for offline indicator
+        />
+      )}
+      
+      {messageStatus && (
+        <MessageStatus
+          status={messageStatus}
+          size={16}
+        />
+      )}
+    </View>
+  );
+};
+
+export default RealTimeIndicators;
+
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,

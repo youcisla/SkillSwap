@@ -341,6 +341,43 @@ export class EnhancedApiService {
     responseCache.invalidate(pattern);
   }
 
+  // Enhanced user search method
+  static async searchUsers(params: {
+    query: string;
+    filter?: string;
+    currentUserId?: string | null;
+  }): Promise<any> {
+    const queryParams = new URLSearchParams();
+    
+    // Only add query if it's not empty
+    if (params.query && params.query.trim()) {
+      queryParams.append('q', params.query.trim());
+    }
+    
+    // Add filter type if provided
+    if (params.filter && params.filter !== 'all') {
+      queryParams.append('filter', params.filter);
+    }
+    
+    // Add current user ID if provided and valid
+    if (params.currentUserId && params.currentUserId !== 'undefined' && params.currentUserId !== null) {
+      queryParams.append('currentUserId', params.currentUserId);
+    }
+    
+    const url = `/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    console.log('🔍 EnhancedApiService: Searching users with URL:', url);
+    
+    return EnhancedApiService.get(url);
+  }
+
+  // Enhanced chat methods
+  static async getChats(userId: string): Promise<any> {
+    if (!userId || userId === 'undefined' || userId === null) {
+      throw new Error('Invalid user ID for getting chats');
+    }
+    return EnhancedApiService.get(`/chats/user/${userId}`);
+  }
+
   // Upload with progress
   static async uploadFile(
     endpoint: string,

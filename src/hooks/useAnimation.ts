@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Animated, Easing } from 'react-native';
+import { getAnimationConfig } from '../utils/animationUtils';
 
 export interface AnimationConfig {
   duration?: number;
@@ -19,20 +20,15 @@ export const useAnimation = () => {
     toValue: number,
     config: AnimationConfig = {}
   ) => {
-    const {
-      duration = 300,
-      easing = Easing.out(Easing.quad),
-      useNativeDriver = true,
-      delay = 0,
-    } = config;
-
-    const animation = Animated.timing(animatedValue, {
+    const animationConfig = getAnimationConfig({
+      duration: 300,
+      easing: Easing.out(Easing.quad),
+      delay: 0,
+      ...config,
       toValue,
-      duration,
-      easing,
-      useNativeDriver,
-      delay,
-    });
+    }, false); // false for non-transform animations
+
+    const animation = Animated.timing(animatedValue, animationConfig);
 
     return {
       start: (callback?: () => void) => animation.start(callback),
@@ -50,18 +46,14 @@ export const useAnimation = () => {
       useNativeDriver?: boolean;
     }
   ) => {
-    const {
-      tension = 100,
-      friction = 8,
-      useNativeDriver = true,
-    } = config || {};
-
-    return Animated.spring(animatedValue, {
+    const springConfig = getAnimationConfig({
+      tension: 100,
+      friction: 8,
+      ...config,
       toValue,
-      tension,
-      friction,
-      useNativeDriver,
-    });
+    }, true); // true for transform animations
+
+    return Animated.spring(animatedValue, springConfig);
   }, []);
 
   const createSequence = useCallback((animations: Animated.CompositeAnimation[]) => {
@@ -94,19 +86,21 @@ export const useFadeAnimation = (duration = 300) => {
   const opacity = useRef(new Animated.Value(0)).current;
 
   const fadeIn = useCallback((callback?: () => void) => {
-    Animated.timing(opacity, {
+    const config = getAnimationConfig({
       toValue: 1,
       duration,
-      useNativeDriver: true,
-    }).start(callback);
+    }, false);
+    
+    Animated.timing(opacity, config).start(callback);
   }, [opacity, duration]);
 
   const fadeOut = useCallback((callback?: () => void) => {
-    Animated.timing(opacity, {
+    const config = getAnimationConfig({
       toValue: 0,
       duration,
-      useNativeDriver: true,
-    }).start(callback);
+    }, false);
+    
+    Animated.timing(opacity, config).start(callback);
   }, [opacity, duration]);
 
   const fadeToggle = useCallback((visible: boolean, callback?: () => void) => {

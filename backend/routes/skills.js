@@ -19,14 +19,24 @@ const checkAdminPrivileges = async (userId) => {
 // Get user skills (both teach and learn)
 router.get('/user/:userId', auth, async (req, res) => {
   try {
+    const { userId } = req.params;
+    
+    // Validate userId
+    if (!userId || userId === 'undefined' || userId === 'null' || !/^[0-9a-fA-F]{24}$/.test(userId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or missing user ID'
+      });
+    }
+
     const teachSkills = await Skill.find({
-      userId: req.params.userId,
+      userId: userId,
       type: 'teach',
       isActive: true
     });
 
     const learnSkills = await Skill.find({
-      userId: req.params.userId,
+      userId: userId,
       type: 'learn',
       isActive: true
     });

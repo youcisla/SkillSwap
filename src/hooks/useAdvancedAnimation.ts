@@ -20,7 +20,7 @@ export const useAdvancedAnimation = (initialValue = 0) => {
       duration = 300,
       easing = Easing.bezier(0.4, 0, 0.2, 1),
       delay = 0,
-      useNativeDriver = true,
+      useNativeDriver = false,
     } = options;
 
     // Stop any existing animation
@@ -53,7 +53,7 @@ export const useAdvancedAnimation = (initialValue = 0) => {
       toValue,
       tension: 100,
       friction: 8,
-      useNativeDriver: true,
+      useNativeDriver: false,
     };
 
     if (animationRef.current) {
@@ -91,7 +91,7 @@ export const useAdvancedAnimation = (initialValue = 0) => {
         toValue,
         duration: 1000,
         easing: Easing.linear,
-        useNativeDriver: true,
+        useNativeDriver: false,
         ...options,
       })
     );

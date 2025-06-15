@@ -26,7 +26,6 @@ const chatSchema = new mongoose.Schema({
 
 // Index for better query performance
 chatSchema.index({ participants: 1 });
-chatSchema.index({ _id: 1 });
 
 // Static method to generate chat ID from participants
 chatSchema.statics.generateChatId = function(userId1, userId2) {

@@ -6,18 +6,47 @@ const User = require('../models/User');
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+// Middleware to check database connection
+const checkDatabaseConnection = (req, res, next) => {
+  const mongoose = require('mongoose');
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      success: false,
+      error: 'Database not connected. Please check MongoDB configuration.',
+      details: {
+        readyState: mongoose.connection.readyState,
+        states: {
+          0: 'disconnected',
+          1: 'connected',
+          2: 'connecting',
+          3: 'disconnecting'
+        }
+      }
+    });
+  }
+  next();
+};
+
 // Health check endpoint
 router.get('/health', (req, res) => {
+  const mongoose = require('mongoose');
+  const dbConnected = mongoose.connection.readyState === 1;
+  
   res.json({
     success: true,
     message: 'SkillSwap API is running',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    database: {
+      connected: dbConnected,
+      status: dbConnected ? 'Connected' : 'Disconnected',
+      readyState: mongoose.connection.readyState
+    }
   });
 });
 
 // Register
-router.post('/register', [
+router.post('/register', checkDatabaseConnection, [
   body('name').notEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
@@ -83,7 +112,7 @@ router.post('/register', [
 });
 
 // Login
-router.post('/login', [
+router.post('/login', checkDatabaseConnection, [
   body('email').isEmail().withMessage('Valid email is required'),
   body('password').notEmpty().withMessage('Password is required')
 ], async (req, res) => {
@@ -140,7 +169,7 @@ router.post('/login', [
 });
 
 // Get current user (requires authentication)
-router.get('/me', async (req, res) => {
+router.get('/me', checkDatabaseConnection, async (req, res) => {
   try {
     const authHeader = req.header('Authorization') || req.headers.authorization;
     const token = authHeader?.replace('Bearer ', '');

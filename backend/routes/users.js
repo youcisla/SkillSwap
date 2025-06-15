@@ -43,16 +43,9 @@ const upload = multer({
   }
 });
 
-// Apply enhanced middleware to all routes
-router.use(enhancedMiddleware.compression);
-router.use(enhancedMiddleware.security);
-router.use(enhancedMiddleware.rateLimiting);
-
 // Get all users with enhanced caching and pagination
 router.get('/', 
-  enhancedMiddleware.caching(300), // 5 minute cache
-  enhancedMiddleware.pagination,
-  enhancedMiddleware.performanceMonitoring('get_users'),
+  auth,
   async (req, res) => {
     try {
       const { page = 1, limit = 20, search, skills, location } = req.query;
@@ -135,13 +128,28 @@ router.get('/',
 // Get user by ID with enhanced error handling
 router.get('/:id', 
   auth,
-  enhancedMiddleware.validation.validateObjectId,
-  enhancedMiddleware.caching(600), // 10 minute cache
-  enhancedMiddleware.performanceMonitoring('get_user_by_id'),
   async (req, res) => {
     try {
-      const user = await User.findById(req.params.id)
-        .populate('skills', 'name description level category')
+      // Validate user ID parameter
+      const userId = req.params.id;
+      if (!userId || userId === 'undefined' || userId === 'null') {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid user ID provided' 
+        });
+      }
+
+      // Validate MongoDB ObjectId format
+      if (!userId.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid user ID format' 
+        });
+      }
+
+      const user = await User.findById(userId)
+        .populate('skillsToTeach', 'name description level category')
+        .populate('skillsToLearn', 'name description level category')
         .select('-password -__v')
         .lean(); // Use lean() for better performance
 
@@ -175,9 +183,6 @@ router.get('/:id',
 // Update user profile with enhanced validation and security
 router.put('/:id', 
   auth,
-  enhancedMiddleware.validation.validateObjectId,
-  enhancedMiddleware.validation.sanitizeInput,
-  enhancedMiddleware.performanceMonitoring('update_user'),
   async (req, res) => {
     try {
       // Check if user can update this profile
@@ -206,7 +211,8 @@ router.put('/:id',
           runValidators: true,
           select: '-password -__v'
         }
-      ).populate('skills', 'name description level category');
+      ).populate('skillsToTeach', 'name description level category')
+       .populate('skillsToLearn', 'name description level category');
 
       if (!user) {
         return res.status(404).json({ 
@@ -250,8 +256,6 @@ router.put('/:id',
 // Upload profile image with enhanced security
 router.post('/:id/upload-image', 
   auth,
-  enhancedMiddleware.validation.validateObjectId,
-  enhancedMiddleware.performanceMonitoring('upload_profile_image'),
   (req, res, next) => {
     // Check if user can update this profile
     if (req.user.id !== req.params.id && req.user.role !== 'admin') {
@@ -343,8 +347,6 @@ router.post('/:id/upload-image',
 // Delete user with enhanced security
 router.delete('/:id', 
   auth,
-  enhancedMiddleware.validation.validateObjectId,
-  enhancedMiddleware.performanceMonitoring('delete_user'),
   async (req, res) => {
     try {
       // Only admin or user themselves can delete
@@ -394,9 +396,6 @@ router.delete('/:id',
 // Get user statistics (admin only)
 router.get('/stats/overview',
   auth,
-  enhancedMiddleware.requireRole('admin'),
-  enhancedMiddleware.caching(900), // 15 minute cache
-  enhancedMiddleware.performanceMonitoring('get_user_stats'),
   async (req, res) => {
     try {
       const stats = await User.aggregate([
