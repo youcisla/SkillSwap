@@ -191,14 +191,14 @@ const OptimizedMatchList: React.FC<OptimizedMatchListProps> = ({
         } else {
           matchedUser = users.find(u => String(u.id) === String(user2Id));
         }
-        skills = match.user1Skills;
+        skills = Array.isArray(match.user1Skills) ? match.user1Skills : [];
       } else if (String(user2Id) === String(currentUserId)) {
         if (typeof matchData.user1Id === 'object') {
           matchedUser = matchData.user1Id;
         } else {
           matchedUser = users.find(u => String(u.id) === String(user1Id));
         }
-        skills = match.user2Skills;
+        skills = Array.isArray(match.user2Skills) ? match.user2Skills : [];
       }
       
       return {
@@ -225,7 +225,7 @@ const OptimizedMatchList: React.FC<OptimizedMatchListProps> = ({
   );
 
   const keyExtractor = useCallback(
-    (item: typeof matchesWithUsers[0]) => item.match.id,
+    (item: typeof matchesWithUsers[0]) => String(item.match.id),
     []
   );
 

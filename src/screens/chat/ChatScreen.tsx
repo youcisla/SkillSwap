@@ -1,5 +1,5 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     FlatList,
     KeyboardAvoidingView,
@@ -153,7 +153,7 @@ const ChatScreen: React.FC = () => {
     }
   };
 
-  const renderMessage = ({ item }: { item: Message }) => {
+  const renderMessage = useCallback(({ item }: { item: Message }) => {
     const isOwnMessage = item.senderId === user?.id;
     
     return (
@@ -185,7 +185,9 @@ const ChatScreen: React.FC = () => {
         </Card>
       </View>
     );
-  };
+  }, [user?.id]);
+
+  const keyExtractor = useCallback((item: Message) => String(item.id), []);
 
   if (loading && chatMessages.length === 0) {
     return (
@@ -219,10 +221,15 @@ const ChatScreen: React.FC = () => {
         ref={flatListRef}
         data={chatMessages}
         renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         style={styles.messagesList}
         contentContainerStyle={styles.messagesContent}
         inverted={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={8}
+        updateCellsBatchingPeriod={50}
       />
 
       {/* Message Input */}

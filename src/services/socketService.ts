@@ -1,33 +1,48 @@
 import { io, Socket } from 'socket.io-client';
 import { store } from '../store';
 import { addMessage } from '../store/slices/messageSlice';
+import { authService } from './authService';
 import { notificationService } from './notificationService';
 
 class SocketService {
   private socket: Socket | null = null;
-  private baseUrl = __DEV__ ? 'http://localhost:3000' : 'https://your-production-url.com';
+  private baseUrl = __DEV__ ? 'http://192.168.1.93:3000' : 'https://your-production-url.com';
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private isConnected = false;
   private currentUserId: string | null = null;
   private currentToken: string | null = null;
+  private isAuthenticating = false;
 
-  connect(userId: string, token?: string) {
-    if (this.socket?.connected) {
-      console.log('Socket already connected');
+  async connect(userId: string, token?: string) {
+    if (this.socket?.connected && this.currentUserId === userId) {
+      console.log('Socket already connected for user:', userId);
       return;
     }
 
-    console.log('🔌 Connecting to socket server...');
+    console.log('🔌 Connecting to socket server:', this.baseUrl);
+    
+    // Get stored token if not provided
+    if (!token) {
+      token = await authService.getStoredToken();
+    }
     
     // Store for reconnection
     this.currentUserId = userId;
     this.currentToken = token || null;
     
+    // Disconnect existing socket if it exists
+    if (this.socket) {
+      this.socket.disconnect();
+    }
+    
     this.socket = io(this.baseUrl, {
       transports: ['websocket', 'polling'],
       timeout: 10000,
-      forceNew: false,
+      forceNew: true,
+      auth: {
+        token: token || null
+      }
     });
 
     this.setupEventListeners(userId, token);
@@ -42,25 +57,40 @@ class SocketService {
       this.reconnectAttempts = 0;
       
       // Authenticate with token if provided
-      if (token) {
+      if (token && !this.isAuthenticating) {
+        this.isAuthenticating = true;
+        console.log('🔐 Authenticating socket with token...');
         this.socket?.emit('authenticate', token);
       }
       
       // Join user's personal room for notifications
       this.socket?.emit('join-user-room', userId);
+      console.log(`👤 Joined user room: user-${userId}`);
+    });
+
+    this.socket.on('authenticated', (data) => {
+      console.log('✅ Socket authenticated successfully:', data);
+      this.isAuthenticating = false;
+    });
+
+    this.socket.on('authentication-failed', () => {
+      console.error('❌ Socket authentication failed');
+      this.isAuthenticating = false;
     });
 
     this.socket.on('connect_error', (error) => {
       console.error('❌ Socket connection error:', error);
       this.isConnected = false;
+      this.isAuthenticating = false;
     });
 
     this.socket.on('disconnect', (reason) => {
       console.log('🔌 Socket disconnected:', reason);
       this.isConnected = false;
+      this.isAuthenticating = false;
       
       // Auto-reconnect if not a manual disconnect
-      if (reason === 'io server disconnect') {
+      if (reason === 'io server disconnect' || reason === 'transport close') {
         this.attemptReconnect(userId);
       }
     });
@@ -69,26 +99,30 @@ class SocketService {
     this.socket.on('new-message', (messageData) => {
       console.log('📨 New message received:', messageData);
       
+      // Transform the message data to match our Message interface
+      const transformedMessage = {
+        id: messageData.id || messageData._id,
+        senderId: messageData.senderId,
+        receiverId: messageData.receiverId,
+        content: messageData.content,
+        timestamp: messageData.timestamp || messageData.createdAt || new Date().toISOString(),
+        isRead: messageData.isRead || false,
+        chatId: messageData.chatId
+      };
+
       // Add message to store
       store.dispatch(addMessage({
         chatId: messageData.chatId,
-        message: {
-          id: messageData.id || messageData._id,
-          senderId: messageData.senderId,
-          receiverId: messageData.receiverId,
-          content: messageData.content,
-          timestamp: messageData.timestamp || messageData.createdAt,
-          isRead: false,
-        }
+        message: transformedMessage
       }));
 
       // Show notification if message is not from current user
       if (messageData.senderId !== userId) {
         notificationService.scheduleLocalNotification(
           'New Message',
-          messageData.content.length > 50 
+          messageData.content && messageData.content.length > 50 
             ? `${messageData.content.substring(0, 50)}...` 
-            : messageData.content,
+            : messageData.content || 'New message received',
           {
             type: 'message',
             chatId: messageData.chatId,
@@ -151,7 +185,11 @@ class SocketService {
       console.log(`🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
       
       setTimeout(() => {
-        this.connect(userId);
+        if (this.currentUserId && this.currentToken) {
+          this.connect(this.currentUserId, this.currentToken);
+        } else if (this.currentUserId) {
+          this.connect(this.currentUserId);
+        }
       }, Math.pow(2, this.reconnectAttempts) * 1000); // Exponential backoff
     } else {
       console.error('❌ Max reconnection attempts reached');
@@ -180,8 +218,13 @@ class SocketService {
     timestamp: string;
   }) {
     if (this.socket?.connected) {
-      console.log('📤 Emitting message:', messageData);
-      this.socket.emit('send-message', messageData);
+      console.log('📤 Emitting message via socket:', messageData);
+      // Use the correct event name that matches the backend
+      this.socket.emit('send-message', {
+        chatId: messageData.chatId,
+        content: messageData.content,
+        type: 'text'
+      });
     } else {
       console.warn('⚠️ Socket not connected, cannot send real-time message');
     }
@@ -277,25 +320,25 @@ class SocketService {
 
   onTypingStart(callback: (data: any) => void) {
     if (this.socket) {
-      this.socket.on('typing-start', callback);
+      this.socket.on('user-typing-start', callback);
     }
   }
 
   offTypingStart(callback: (data: any) => void) {
     if (this.socket) {
-      this.socket.off('typing-start', callback);
+      this.socket.off('user-typing-start', callback);
     }
   }
 
   onTypingStop(callback: (data: any) => void) {
     if (this.socket) {
-      this.socket.on('typing-stop', callback);
+      this.socket.on('user-typing-stop', callback);
     }
   }
 
   offTypingStop(callback: (data: any) => void) {
     if (this.socket) {
-      this.socket.off('typing-stop', callback);
+      this.socket.off('user-typing-stop', callback);
     }
   }
 

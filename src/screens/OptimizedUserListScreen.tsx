@@ -76,7 +76,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
 
   // Virtualization and animation hooks
-  const { fadeIn, slideIn } = useAdvancedAnimation();
+  const { animatedValue: fadeIn } = useAdvancedAnimation();
   
   // Offline sync for better reliability
   const { syncData, isOnline } = useOfflineSync('users');
@@ -104,7 +104,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
       currentUserId: user?.id || null
     }),
     {
-      enabled: !!user?.id,
+      enabled: !!user?.id && user.id.length > 0, // Add validation
       staleTime: 5 * 60 * 1000, // 5 minutes
       cacheTime: 10 * 60 * 1000, // 10 minutes
     }
@@ -112,12 +112,17 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
 
   // Load users when debounced search query or filter changes
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && user?.id && user.id.length > 0) {
       loadUsers();
     }
-  }, [debouncedSearchQuery, filterType, currentUser?.id]);
+  }, [debouncedSearchQuery, filterType, currentUser?.id, user?.id]);
 
   const loadUsers = useCallback(async () => {
+    if (!user?.id || user.id.length === 0) {
+      console.warn('Invalid user ID, skipping user search');
+      return;
+    }
+    
     try {
       const filters: any = {};
       
@@ -246,7 +251,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
   // Enhanced render function with animations and better UX
   const renderUserItem = useCallback(({ item: userProfile }: { item: UserProfile }) => {
     const compatibilityScore = calculateCompatibility(userProfile);
-    const isSelected = userSelection.isSelected(userProfile.id);
+    const isSelected = userSelection.isSelected(userProfile);
 
     // Selection mode rendering
     if (isSelectionMode) {
@@ -254,14 +259,13 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
         <SelectableItem
           key={userProfile.id}
           isSelected={isSelected}
-          onSelectionChange={(selected) => {
-            if (selected) {
-              userSelection.select(userProfile.id);
-            } else {
-              userSelection.deselect(userProfile.id);
-            }
+          onToggleSelection={() => {
+            userSelection.toggleSelection(userProfile);
           }}
-          style={[styles.userCard, isSelected && styles.selectedCard]}
+          style={StyleSheet.flatten([
+            styles.userCard, 
+            isSelected && styles.selectedCard
+          ])}
         >
           <View style={styles.userContent}>
             <View style={styles.userHeader}>
@@ -330,7 +334,10 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
     return (
       <EnhancedCard
         variant="elevated"
-        style={[styles.userCard, { transform: [{ scale: fadeIn }] }]}
+        style={StyleSheet.flatten([
+          styles.userCard, 
+          { transform: [{ scale: fadeIn }] }
+        ])}
         onPress={() => {
           triggerHaptic('light');
           navigation.navigate('UserProfile', { userId: userProfile.id });
@@ -531,7 +538,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
   }
 
   return (
-    <View style={[styles.container, { transform: [{ translateY: slideIn }] }]}>
+    <View style={styles.container}>
       {/* Enhanced Search Section */}
       <View style={styles.searchSection}>
         <Searchbar

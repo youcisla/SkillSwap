@@ -27,7 +27,7 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
     } else {
       fadeOut();
     }
-  }, [visible]);
+  }, [visible, fadeIn, fadeOut]);
 
   const startDotAnimation = () => {
     const animateDots = async () => {
@@ -169,38 +169,26 @@ export const MessageStatus: React.FC<MessageStatusProps> = ({
     animate(1, { duration: 300 });
   }, [status]);
 
-  const getStatusIcon = () => {
-    switch (status) {
-      case 'sending':
-        return 'clock-outline';
-      case 'sent':
-        return 'check';
-      case 'delivered':
-        return 'check-all';
-      case 'read':
-        return 'check-all';
-      case 'failed':
-        return 'alert-circle-outline';
-      default:
-        return 'check';
-    }
+  const getStatusIcon = (): string => {
+    const iconMap = {
+      'sending': 'clock-outline',
+      'sent': 'check',
+      'delivered': 'check-all',
+      'read': 'eye-check',
+      'failed': 'alert-circle-outline'
+    };
+    return iconMap[status] || 'help-circle-outline';
   };
 
-  const getStatusColor = () => {
-    switch (status) {
-      case 'sending':
-        return theme.colors.outline;
-      case 'sent':
-        return theme.colors.outline;
-      case 'delivered':
-        return theme.colors.primary;
-      case 'read':
-        return '#4caf50';
-      case 'failed':
-        return theme.colors.error;
-      default:
-        return theme.colors.outline;
-    }
+  const getStatusColor = (): string => {
+    const colorMap = {
+      'sending': theme.colors.outline,
+      'sent': theme.colors.onSurfaceVariant,
+      'delivered': theme.colors.primary,
+      'read': '#4caf50',
+      'failed': theme.colors.error
+    };
+    return colorMap[status] || theme.colors.onSurface;
   };
 
   return (
@@ -224,6 +212,9 @@ interface RealTimeIndicatorsProps {
   offlineMessage?: string;
   userPresence?: 'online' | 'away' | 'busy' | 'offline';
   messageStatus?: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+  showSyncStatus?: boolean;
+  lastSyncTime?: Date | number;
+  connectedUsers?: number;
   style?: any;
 }
 
@@ -235,6 +226,9 @@ const RealTimeIndicators: React.FC<RealTimeIndicatorsProps> = ({
   offlineMessage,
   userPresence = 'offline',
   messageStatus,
+  showSyncStatus = false,
+  lastSyncTime,
+  connectedUsers,
   style,
 }) => {
   return (
@@ -267,6 +261,18 @@ const RealTimeIndicators: React.FC<RealTimeIndicatorsProps> = ({
           status={messageStatus}
           size={16}
         />
+      )}
+      
+      {showSyncStatus && lastSyncTime && (
+        <Text style={[styles.syncText, { color: 'gray' }]}>
+          Last sync: {new Date(lastSyncTime).toLocaleTimeString()}
+        </Text>
+      )}
+      
+      {connectedUsers && connectedUsers > 0 && (
+        <Text style={[styles.usersText, { color: 'gray' }]}>
+          {connectedUsers} online
+        </Text>
       )}
     </View>
   );
@@ -312,5 +318,15 @@ const styles = StyleSheet.create({
   statusIcon: {
     margin: 0,
     padding: 0,
+  },
+  syncText: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginRight: 8,
+  },
+  usersText: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginRight: 8,
   },
 });

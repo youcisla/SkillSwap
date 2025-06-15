@@ -5,6 +5,7 @@ import {
     Alert,
     ScrollView,
     StyleSheet,
+    TouchableOpacity,
     View,
 } from 'react-native';
 import {
@@ -15,7 +16,6 @@ import {
     TextInput,
     Title
 } from 'react-native-paper';
-import { AirbnbRating } from 'react-native-ratings';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { completeSession } from '../../store/slices/sessionSlice';
 import { RootStackParamList } from '../../types';
@@ -89,14 +89,29 @@ const FeedbackScreen: React.FC<Props> = ({ navigation, route }) => {
           <Card.Content>
             <Title style={styles.sectionTitle}>Rate Your Experience</Title>
             <View style={styles.ratingContainer}>
-              <AirbnbRating
-                count={5}
-                reviews={["Poor", "Fair", "Good", "Very Good", "Excellent"]}
-                defaultRating={0}
-                size={40}
-                onFinishRating={setRating}
-                showRating={true}
-              />
+              <View style={styles.starRating}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity
+                    key={star}
+                    style={styles.starButton}
+                    onPress={() => setRating(star)}
+                  >
+                    <Text style={[
+                      styles.star,
+                      star <= rating && styles.filledStar
+                    ]}>
+                      ⭐
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.ratingText}>
+                {rating === 0 ? 'Tap to rate' : 
+                 rating === 1 ? 'Poor' :
+                 rating === 2 ? 'Fair' :
+                 rating === 3 ? 'Good' :
+                 rating === 4 ? 'Very Good' : 'Excellent'}
+              </Text>
             </View>
           </Card.Content>
         </Card>
@@ -170,6 +185,25 @@ const styles = StyleSheet.create({
   ratingContainer: {
     alignItems: 'center',
     paddingVertical: 20,
+  },
+  starRating: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  starButton: {
+    padding: 5,
+  },
+  star: {
+    fontSize: 30,
+    color: '#ddd',
+  },
+  filledStar: {
+    color: '#ffc107',
+  },
+  ratingText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 10,
   },
   commentInput: {
     marginBottom: 8,

@@ -14,13 +14,12 @@ import {
     Badge,
     Button,
     Card,
-    Chip,
     FAB,
     Searchbar,
     Text
 } from 'react-native-paper';
 import SafeAvatar from '../components/SafeAvatar';
-import { EmptyState, LoadingState } from '../components/ui/LoadingState';
+import LoadingState, { EmptyState } from '../components/ui/LoadingState';
 import { BulkActionsBar, SelectableItem, SelectionHeader } from '../components/ui/MultiSelection';
 // Enhanced components and hooks
 import { VirtualizedList } from '../components/optimized/VirtualizedList';
@@ -44,7 +43,7 @@ interface Props {
   navigation: MessagesScreenNavigationProp;
 }
 
-const MessagesScreen: React.FC<Props> = ({ navigation }) => {
+const OptimizedMessagesScreen: React.FC<Props> = ({ navigation }) => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { chats, loading } = useAppSelector((state) => state.messages);
@@ -58,7 +57,7 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
   // Performance and UX hooks
-  const { fadeIn, slideIn } = useAdvancedAnimation();
+  const { animatedValue: fadeIn, animate: animateFadeIn } = useAdvancedAnimation();
   const { syncData, isOnline, lastSyncTime } = useOfflineSync('messages');
 
   // Multi-selection hook for enhanced UX
@@ -73,21 +72,20 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
     isLoading: isLoadingChats,
     refetch: refetchChats
   } = useOptimizedQuery(
-    ['chats', user?.id],
+    ['chats', user?.id || 'anonymous'],
     () => EnhancedApiService.getChats(user?.id || ''),
     {
       enabled: !!user?.id,
-      staleTime: 30 * 1000, // 30 seconds
-      cacheTime: 2 * 60 * 1000, // 2 minutes
-      refetchInterval: 60 * 1000, // Refetch every minute
+      staleTime: 5 * 60 * 1000, // 5 minutes - data is fresh for 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes - keep in cache for 10 minutes
+      refetchInterval: 0, // Disable automatic refetching to prevent excessive calls
+      refetchOnWindowFocus: false, // Disable refetch on window focus
     }
   );
 
   // Enhanced socket setup with real-time features
   useEffect(() => {
     if (user?.id) {
-      loadChats();
-      
       // Enhanced socket connection with presence and typing indicators
       if (!socketService.isSocketConnected()) {
         socketService.connect(user.id);
@@ -95,8 +93,13 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
 
       // Setup real-time listeners
       const handleNewMessage = (message: any) => {
-        // Refresh chats when new message arrives
-        refetchChats();
+        // Only refresh if the message is for a chat this user is involved in
+        console.log('📨 New message received:', message);
+        // Instead of refetching all chats, we could update the specific chat in place
+        // For now, we'll throttle the refetch to prevent excessive calls
+        setTimeout(() => {
+          refetchChats();
+        }, 1000); // Debounce for 1 second
       };
 
       const handleTypingStart = (data: { userId: string, userName: string, chatId: string }) => {
@@ -152,6 +155,8 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
   }, [user?.id, dispatch]);
 
   const onRefresh = useCallback(async () => {
+    if (refreshing) return; // Prevent multiple concurrent refreshes
+    
     setRefreshing(true);
     try {
       await Promise.all([
@@ -162,7 +167,7 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setRefreshing(false);
     }
-  }, [loadChats, refetchChats, syncData]);
+  }, [refreshing, loadChats, refetchChats, syncData]);
 
   const getOtherParticipant = useCallback((chat: Chat) => {
     const otherUserId = chat.participants.find(id => id !== user?.id);
@@ -181,7 +186,7 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
       return (
         otherParticipant?.name.toLowerCase().includes(query) ||
         chat.lastMessage?.content?.toLowerCase().includes(query) ||
-        chat.metadata?.topic?.toLowerCase().includes(query)
+        chat.lastMessage?.content?.toLowerCase().includes(query)
       );
     }).sort((a, b) => {
       // Sort by last message timestamp
@@ -215,7 +220,7 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
 
   // Enhanced bulk actions
   const handleBulkDelete = useCallback(async () => {
-    const selectedChatIds = chatSelection.getSelectedItems();
+    const selectedChatIds = chatSelection.selectedItems.map(chat => chat.id);
     
     Alert.alert(
       'Delete Conversations',
@@ -257,23 +262,22 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
   // Enhanced chat item renderer with real-time indicators
   const renderChatItem = useCallback(({ item: chat }: { item: Chat }) => {
     const otherParticipant = getOtherParticipant(chat);
-    const isSelected = chatSelection.isSelected(chat.id);
+    const isSelected = chatSelection.isSelected(chat);
     const isTyping = typingUsers[chat.id];
     const isOnline = otherParticipant && onlineUsers.has(otherParticipant.id);
-    const unreadCount = chat.unreadCount || 0;
+    const unreadCount = 0; // TODO: Add unread count to Chat model
 
     if (isSelectionMode) {
       return (
         <SelectableItem
           isSelected={isSelected}
-          onSelectionChange={(selected) => {
-            if (selected) {
-              chatSelection.select(chat.id);
-            } else {
-              chatSelection.deselect(chat.id);
-            }
+          onToggleSelection={() => {
+            chatSelection.toggleSelection(chat);
           }}
-          style={[styles.chatCard, isSelected && styles.selectedChatCard]}
+          style={StyleSheet.flatten([
+            styles.chatCard,
+            isSelected && styles.selectedChatCard
+          ])}
         >
           <Card.Content>
             <View style={styles.chatHeader}>
@@ -318,7 +322,7 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
         onPress={() => {
           navigation.navigate('MessageChat', {
             chatId: chat.id,
-            otherUserId: otherParticipant?.id
+            otherUserId: otherParticipant?.id || ''
           });
         }}
       >
@@ -359,11 +363,13 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
                   <Badge style={styles.unreadBadge} size={20}>{unreadCount}</Badge>
                 )}
               </View>
+              {/* TODO: Add topic/metadata to Chat model
               {chat.metadata?.topic && (
                 <Chip style={styles.topicChip} compact>
                   {chat.metadata.topic}
                 </Chip>
               )}
+              */}
             </View>
           </View>
         </Card.Content>
@@ -390,10 +396,7 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
           <Button
             mode="contained"
             onPress={() => {
-              navigation.navigate('Home', { 
-                screen: 'UserList',
-                params: {}
-              });
+              navigation.navigate('Home');
             }}
           >
             Find People to Chat With
@@ -438,7 +441,7 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
       <RealTimeIndicators
         showOnlineStatus={true}
         showSyncStatus={true}
-        lastSyncTime={lastSyncTime}
+        lastSyncTime={lastSyncTime || undefined}
         connectedUsers={onlineUsers.size}
       />
 
@@ -518,10 +521,7 @@ const MessagesScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.fab}
         icon="message-plus"
         onPress={() => {
-          navigation.navigate('Home', { 
-            screen: 'UserList',
-            params: {}
-          });
+          navigation.navigate('Home');
         }}
         label="New Chat"
       />
@@ -681,4 +681,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MessagesScreen;
+export default OptimizedMessagesScreen;

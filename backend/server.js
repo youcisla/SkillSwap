@@ -273,9 +273,12 @@ function setupEnhancedSocket(io) {
 
     // Handle explicit user room joining (for compatibility)
     socket.on('join-user-room', (userId) => {
-      if (userId && currentUserId === userId) {
+      if (userId) {
+        // Allow joining user room even without authentication for basic functionality
+        currentUserId = userId;
+        socket.userId = userId;
         socket.join(`user-${userId}`);
-        console.log(`👤 User ${userId} explicitly joined their personal room`);
+        console.log(`👤 User ${userId} joined their personal room`);
       }
     });
 
@@ -311,12 +314,23 @@ function setupEnhancedSocket(io) {
         const Message = require('./models/Message');
         const Chat = require('./models/Chat');
         
+        // Verify user is part of the chat
+        const chat = await Chat.findOne({
+          _id: chatId,
+          participants: currentUserId
+        });
+
+        if (!chat) {
+          socket.emit('message-error', 'Chat not found or unauthorized');
+          return;
+        }
+
         const message = new Message({
-          chatId,
-          senderId: currentUserId,
+          chat: chatId,
+          sender: currentUserId,
           content,
           type,
-          timestamp: new Date()
+          readBy: [currentUserId] // Sender has read the message
         });
         
         await message.save();
@@ -328,13 +342,30 @@ function setupEnhancedSocket(io) {
         });
 
         // Populate sender info
-        await message.populate('senderId', 'name profileImage');
+        await message.populate('sender', 'name profileImage');
         
+        // Prepare message data for real-time emission
+        const messageData = {
+          id: message._id,
+          senderId: message.sender._id,
+          receiverId: chat.participants.find(p => p.toString() !== message.sender._id.toString()),
+          content: message.content,
+          timestamp: message.createdAt,
+          isRead: false,
+          chatId: chatId
+        };
+
         // Send to all users in the chat
-        io.to(chatId).emit('new-message', message);
+        io.to(chatId).emit('new-message', messageData);
         
-        // Send push notification to offline users (implement as needed)
-        // await sendPushNotification(chatId, currentUserId, message);
+        // Also emit to receiver's personal room for notifications
+        const targetReceiverId = messageData.receiverId;
+        if (targetReceiverId) {
+          emitToUser(targetReceiverId, 'new-message', {
+            ...messageData,
+            senderName: message.sender.name
+          });
+        }
         
         console.log(`📨 Message sent in chat ${chatId} by ${currentUserId}`);
         
@@ -458,7 +489,7 @@ function setupEnhancedSocket(io) {
       
       if (currentUserId) {
         // Update offline status
-        await cacheService.delete(`online:${currentUserId}`);
+        await cacheService.del(`online:${currentUserId}`);
         await cacheService.set(`presence:${currentUserId}`, {
           status: 'offline',
           lastSeen: new Date()

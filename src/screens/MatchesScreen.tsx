@@ -1,21 +1,21 @@
 import { StackNavigationProp } from '@react-navigation/stack';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    View,
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    Button,
-    Card,
-    Chip,
-    FAB,
-    Paragraph,
-    Searchbar,
-    Text,
-    Title
+  Button,
+  Card,
+  Chip,
+  FAB,
+  Paragraph,
+  Searchbar,
+  Text,
+  Title
 } from 'react-native-paper';
 import SafeAvatar from '../components/SafeAvatar';
 import { BulkActionsBar, SelectableItem, SelectionHeader } from '../components/ui/MultiSelection';
@@ -135,7 +135,9 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
       user1Id,
       user2Id,
       user1DataType: typeof user1Data,
-      user2DataType: typeof user2Data
+      user2DataType: typeof user2Data,
+      user1Data: typeof user1Data === 'object' ? user1Data : 'string',
+      user2Data: typeof user2Data === 'object' ? user2Data : 'string'
     });
     
     // Determine which user is the "other" user
@@ -156,7 +158,19 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     // Fallback to finding in users array using the actual user ID
     const otherUserId = String(user1Id) === String(user?.id) ? user2Id : user1Id;
     const foundUser = users.find(u => String(u.id) === String(otherUserId));
-    console.log('MatchesScreen: Fallback search result:', foundUser ? foundUser.name : 'NOT FOUND');
+    console.log('MatchesScreen: Fallback search result:', foundUser ? foundUser.name : 'NOT FOUND', 'for userId:', otherUserId);
+    console.log('MatchesScreen: Available users in store:', users.map(u => ({ id: u.id, name: u.name })));
+    
+    if (!foundUser) {
+      console.warn('MatchesScreen: No matched user found for match:', {
+        matchId: match.id,
+        lookingForUserId: otherUserId,
+        currentUserId: user?.id,
+        availableUsers: users.length,
+        user1Data: typeof user1Data === 'object' ? { id: user1Data.id || user1Data._id, name: user1Data.name } : user1Data,
+        user2Data: typeof user2Data === 'object' ? { id: user2Data.id || user2Data._id, name: user2Data.name } : user2Data
+      });
+    }
     
     return foundUser;
   };
@@ -167,7 +181,16 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     // Extract actual IDs for comparison (handle both string IDs and populated objects)
     const user1Id = typeof matchData.user1Id === 'object' ? matchData.user1Id.id || matchData.user1Id._id : matchData.user1Id;
     
-    return String(user1Id) === String(user?.id) ? match.user1Skills : match.user2Skills;
+    const skills = String(user1Id) === String(user?.id) ? match.user1Skills : match.user2Skills;
+    
+    // Ensure we always return an array
+    if (!Array.isArray(skills)) {
+      console.warn('MatchesScreen: getMatchedSkills - skills is not an array:', skills);
+      return [];
+    }
+    
+    // Filter out any non-string values to prevent rendering errors
+    return skills.filter(skill => typeof skill === 'string' && skill.length > 0);
   };
 
   const filteredMatches = matches.filter(match => {
@@ -176,10 +199,34 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     const matchedUser = getMatchedUser(match);
     const matchedSkills = getMatchedSkills(match);
     
+    console.log('🔍 Filtering match:', {
+      matchId: match.id,
+      searchQuery,
+      matchedUser: matchedUser ? { id: matchedUser.id, name: matchedUser.name } : null,
+      matchedSkills,
+      nameMatch: matchedUser?.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      skillsMatch: matchedSkills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()))
+    });
+    
     return (
       matchedUser?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       matchedSkills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()))
     );
+  });
+
+  // Enhanced debug logging
+  console.log('MatchesScreen Debug:', {
+    totalMatches: matches.length,
+    filteredMatches: filteredMatches.length,
+    searchQuery,
+    user: user?.id,
+    loading,
+    matchesRaw: matches.map(m => ({
+      id: m.id,
+      user1Id: typeof m.user1Id === 'object' ? (m.user1Id as any)?.id || (m.user1Id as any)?._id : m.user1Id,
+      user2Id: typeof m.user2Id === 'object' ? (m.user2Id as any)?.id || (m.user2Id as any)?._id : m.user2Id,
+      currentUserId: user?.id
+    }))
   });
 
   const loadMatches = async () => {
@@ -189,15 +236,34 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
       console.log('🔍 Loading matches for user:', user.id);
       const fetchedMatches = await dispatch(fetchMatches(user.id)).unwrap();
       
+      console.log('✅ Successfully loaded', fetchedMatches.length, 'matches');
+      console.log('📊 Raw matches data:', JSON.stringify(fetchedMatches, null, 2));
+      
+      // Enhanced debugging - check if matches have proper structure
+      fetchedMatches.forEach((match, index) => {
+        console.log(`📊 Match ${index}:`, {
+          id: match.id,
+          user1Id: match.user1Id,
+          user2Id: match.user2Id,
+          user1IdType: typeof match.user1Id,
+          user2IdType: typeof match.user2Id,
+          user1Skills: match.user1Skills,
+          user2Skills: match.user2Skills,
+          compatibilityScore: match.compatibilityScore
+        });
+      });
+      
       // Cache all matched users in the user store for easy access
       fetchedMatches.forEach(match => {
         const matchData = match as any;
         
         // Add populated user data to cache if available
         if (matchData.user1Id && typeof matchData.user1Id === 'object') {
+          console.log('📝 Caching user1:', matchData.user1Id.name);
           dispatch(addUserToCache(matchData.user1Id));
         }
         if (matchData.user2Id && typeof matchData.user2Id === 'object') {
+          console.log('📝 Caching user2:', matchData.user2Id.name);
           dispatch(addUserToCache(matchData.user2Id));
         }
       });
@@ -368,14 +434,33 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('MatchUserProfile', { userId });
   };
 
-  const renderMatchCard = ({ item }: { item: Match }) => {
+  const renderMatchCard = useCallback(({ item }: { item: Match }) => {
     const matchedUser = getMatchedUser(item);
     const matchedSkills = getMatchedSkills(item);
 
     if (!matchedUser) {
       console.warn('MatchesScreen: No matched user found for match:', item.id);
-      return null;
+      console.warn('MatchesScreen: Match data:', JSON.stringify(item, null, 2));
+      
+      // Return a debug card instead of null to help identify the issue
+      return (
+        <Card style={[styles.matchCard, { backgroundColor: '#ffebee' }]}>
+          <Card.Content>
+            <Title style={{ color: '#d32f2f' }}>Debug: Match Data Issue</Title>
+            <Text style={{ color: '#d32f2f' }}>Match ID: {item.id}</Text>
+            <Text style={{ color: '#d32f2f' }}>User1: {JSON.stringify((item as any).user1Id)}</Text>
+            <Text style={{ color: '#d32f2f' }}>User2: {JSON.stringify((item as any).user2Id)}</Text>
+            <Text style={{ color: '#d32f2f' }}>Current User: {user?.id}</Text>
+            <Button mode="outlined" onPress={() => console.log('Full match data:', item)}>
+              Log Full Match Data
+            </Button>
+          </Card.Content>
+        </Card>
+      );
     }
+
+    // Ensure matchedSkills is an array
+    const safeMatchedSkills = Array.isArray(matchedSkills) ? matchedSkills : [];
 
     const matchContent = (
       <Card style={styles.matchCard}>
@@ -385,19 +470,19 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
               <SafeAvatar 
                 size={60} 
                 source={matchedUser.profileImage ? { uri: matchedUser.profileImage } : undefined}
-                fallbackText={matchedUser.name}
+                fallbackText={matchedUser.name || 'U'}
                 style={styles.avatar}
               />
               <View style={styles.userDetails}>
-                <Title style={styles.userName}>{matchedUser.name}</Title>
-                <Text style={styles.userLocation}>{matchedUser.city}</Text>
+                <Title style={styles.userName}>{matchedUser.name || 'Unknown User'}</Title>
+                <Text style={styles.userLocation}>{matchedUser.city || 'Unknown Location'}</Text>
                 <View style={styles.compatibilityContainer}>
                   <Text style={styles.compatibilityLabel}>Match: </Text>
                   <Chip 
-                    style={[styles.compatibilityChip, { backgroundColor: getCompatibilityColor(item.compatibilityScore) }]}
+                    style={[styles.compatibilityChip, { backgroundColor: getCompatibilityColor(item.compatibilityScore || 0) }]}
                     textStyle={styles.compatibilityText}
                   >
-                    {item.compatibilityScore}%
+                    {item.compatibilityScore || 0}%
                   </Chip>
                 </View>
               </View>
@@ -407,14 +492,14 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.skillsSection}>
             <Text style={styles.skillsTitle}>Shared Skills</Text>
             <View style={styles.skillsContainer}>
-              {matchedSkills.slice(0, 3).map((skill, index) => (
+              {safeMatchedSkills.slice(0, 3).map((skill, index) => (
                 <Chip key={`${skill}-${index}`} style={styles.skillChip}>
-                  {skill}
+                  <Text>{String(skill)}</Text>
                 </Chip>
               ))}
-              {matchedSkills.length > 3 && (
+              {safeMatchedSkills.length > 3 && (
                 <Text style={styles.moreSkills}>
-                  +{matchedSkills.length - 3} more
+                  +{safeMatchedSkills.length - 3} more
                 </Text>
               )}
             </View>
@@ -465,7 +550,9 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     return matchContent;
-  };
+  }, [isSelectionMode, matchSelection, user?.id, navigation]);
+
+  const keyExtractor = useCallback((item: Match) => item.id, []);
 
   if (loading && matches.length === 0) {
     return (
@@ -522,7 +609,7 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
       <FlatList
         data={filteredMatches}
         renderItem={renderMatchCard}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         contentContainerStyle={[
           styles.matchesList,
           filteredMatches.length === 0 && styles.emptyListContainer
@@ -531,6 +618,11 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         ListEmptyComponent={renderEmptyState}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={5}
+        windowSize={10}
+        initialNumToRender={4}
+        updateCellsBatchingPeriod={50}
       />
 
       {/* Bulk Actions Bar */}

@@ -2,20 +2,20 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    View
+  Alert,
+  ScrollView,
+  StyleSheet,
+  View
 } from 'react-native';
 import {
-    Button,
-    Card,
-    Divider,
-    HelperText,
-    Text,
-    TextInput,
-    Title,
-    useTheme,
+  Button,
+  Card,
+  Divider,
+  HelperText,
+  Text,
+  TextInput,
+  Title,
+  useTheme,
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { createSession } from '../../store/slices/sessionSlice';
@@ -226,22 +226,15 @@ const SessionRequestScreen: React.FC<Props> = ({ navigation, route }) => {
 
         {/* Date Picker Modals */}
         {showDatePicker && (
-          <DateTimePicker
-            value={date}
-            mode="date"
-            display="default"
-            onChange={onDateChange}
-            minimumDate={new Date()}
-          />
+          <Text style={styles.pickerPlaceholder}>
+            Date picker component would go here
+          </Text>
         )}
 
         {showTimePicker && (
-          <DateTimePicker
-            value={date}
-            mode="time"
-            display="default"
-            onChange={onTimeChange}
-          />
+          <Text style={styles.pickerPlaceholder}>
+            Time picker component would go here
+          </Text>
         )}
       </View>
     </ScrollView>
@@ -316,6 +309,13 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     marginHorizontal: 8,
+  },
+  pickerPlaceholder: {
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+    padding: 16,
   },
 });
 

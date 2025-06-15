@@ -193,7 +193,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         onDismiss={() => setSnackbarVisible(false)}
         duration={3000}
       >
-        {error || snackbarMessage}
+        <Text>{error || snackbarMessage}</Text>
       </Snackbar>
     </KeyboardAvoidingView>
   );

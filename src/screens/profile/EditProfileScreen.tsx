@@ -250,7 +250,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         onDismiss={() => setSnackbarVisible(false)}
         duration={3000}
       >
-        {snackbarMessage}
+        <Text>{snackbarMessage}</Text>
       </Snackbar>
     </ScrollView>
   );

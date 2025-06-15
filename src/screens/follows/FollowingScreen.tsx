@@ -1,6 +1,6 @@
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     FlatList,
     RefreshControl,
@@ -93,7 +93,7 @@ const FollowingScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const renderFollowingItem = ({ item: followedUser }: { item: FollowUser }) => (
+  const renderFollowingItem = useCallback(({ item: followedUser }: { item: FollowUser }) => (
     <Card style={styles.followingCard}>
       <Card.Content>
         <View style={styles.followingHeader}>
@@ -164,7 +164,9 @@ const FollowingScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
       </Card.Content>
     </Card>
-  );
+  ), [navigation, isOwnProfile, handleStartChat, handleUnfollow]);
+
+  const keyExtractor = useCallback((item: FollowUser) => item.id, []);
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
@@ -180,7 +182,10 @@ const FollowingScreen: React.FC<Props> = ({ navigation, route }) => {
       {isOwnProfile && (
         <Button
           mode="contained"
-          onPress={() => navigation.navigate('HomeMain')}
+          onPress={() => {
+            // Navigate to main tab navigator and then to Home
+            (navigation as any).navigate('Main', { screen: 'Home' });
+          }}
           style={styles.exploreButton}
         >
           Explore Users
@@ -201,13 +206,18 @@ const FollowingScreen: React.FC<Props> = ({ navigation, route }) => {
       <FlatList
         data={filteredFollowing}
         renderItem={renderFollowingItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         contentContainerStyle={styles.listContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={5}
+        windowSize={10}
+        initialNumToRender={6}
+        updateCellsBatchingPeriod={50}
       />
     </View>
   );

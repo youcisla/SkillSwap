@@ -1,6 +1,6 @@
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     FlatList,
     RefreshControl,
@@ -82,7 +82,7 @@ const FollowersScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const renderFollowerItem = ({ item: follower }: { item: FollowUser }) => (
+  const renderFollowerItem = useCallback(({ item: follower }: { item: FollowUser }) => (
     <Card style={styles.followerCard}>
       <Card.Content>
         <View style={styles.followerHeader}>
@@ -143,7 +143,9 @@ const FollowersScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
       </Card.Content>
     </Card>
-  );
+  ), [navigation, handleStartChat]);
+
+  const keyExtractor = useCallback((item: FollowUser) => item.id, []);
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
@@ -171,13 +173,18 @@ const FollowersScreen: React.FC<Props> = ({ navigation, route }) => {
       <FlatList
         data={filteredFollowers}
         renderItem={renderFollowerItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         contentContainerStyle={styles.listContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={5}
+        windowSize={10}
+        initialNumToRender={6}
+        updateCellsBatchingPeriod={50}
       />
     </View>
   );
@@ -276,4 +283,5 @@ const styles = StyleSheet.create({
   },
 });
 
+export default FollowersScreen;
 export default FollowersScreen;

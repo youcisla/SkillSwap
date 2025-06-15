@@ -418,3 +418,7 @@ quickstart:
 
 # Make sure the Makefile doesn't try to create files with these names
 .PHONY: all clean install setup dev frontend backend mongo
+
+check_errors:
+	cls
+	npx tsc --noEmit --project .

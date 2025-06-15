@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Animated, FlatList, FlatListProps, ViewStyle } from 'react-native';
 import { useTheme } from 'react-native-paper';
 
@@ -27,22 +27,29 @@ export function VirtualizedList<T>({
   const theme = useTheme();
   const [viewableItems, setViewableItems] = useState<string[]>([]);
 
-  const getItemLayout = (data: ArrayLike<T> | null | undefined, index: number) => ({
+  const getItemLayout = useCallback((data: ArrayLike<T> | null | undefined, index: number) => ({
     length: estimatedItemSize,
     offset: estimatedItemSize * index,
     index,
-  });
+  }), [estimatedItemSize]);
 
-  const onViewableItemsChanged = ({ viewableItems: items }: any) => {
+  const onViewableItemsChanged = useCallback(({ viewableItems: items }: any) => {
     setViewableItems(items.map((item: any) => item.key || item.index.toString()));
-  };
+  }, []);
 
-  const viewabilityConfig = {
+  const viewabilityConfig = useMemo(() => ({
     itemVisiblePercentThreshold: 50,
     minimumViewTime: 300,
-  };
+  }), []);
 
-  const optimizedRenderItem = ({ item, index }: { item: T; index: number }) => {
+  const viewabilityConfigCallbackPairs = useMemo(() => [
+    {
+      viewabilityConfig,
+      onViewableItemsChanged,
+    },
+  ], [viewabilityConfig, onViewableItemsChanged]);
+
+  const optimizedRenderItem = useCallback(({ item, index }: { item: T; index: number }) => {
     return (
       <OptimizedListItem
         key={`item-${index}`}
@@ -51,17 +58,17 @@ export function VirtualizedList<T>({
         {renderItem({ item, index })}
       </OptimizedListItem>
     );
-  };
+  }, [viewableItems, renderItem]);
 
   // Generate a key extractor to ensure unique keys
-  const keyExtractor = (item: T, index: number) => {
+  const keyExtractor = useCallback((item: T, index: number) => {
     // Try to use item.id, item._id, or fallback to index
     if (item && typeof item === 'object') {
       const obj = item as any;
-      return obj.id || obj._id || `item-${index}`;
+      return String(obj.id || obj._id || `item-${index}`);
     }
     return `item-${index}`;
-  };
+  }, []);
 
   return (
     <FlatList
@@ -73,8 +80,7 @@ export function VirtualizedList<T>({
       maxToRenderPerBatch={maxToRenderPerBatch}
       updateCellsBatchingPeriod={updateCellsBatchingPeriod}
       removeClippedSubviews={removeClippedSubviews}
-      onViewableItemsChanged={onViewableItemsChanged}
-      viewabilityConfig={viewabilityConfig}
+      viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
       style={[{ backgroundColor: theme.colors.background }, style]}
       {...props}
     />
