@@ -111,13 +111,16 @@ install-frontend:
 	@if exist node_modules rmdir /s /q node_modules
 	@if exist package-lock.json del package-lock.json
 	@npm cache clean --force
-	@npm install --legacy-peer-deps || (echo ⚠️  Regular install failed, trying with --legacy-peer-deps && npm install --legacy-peer-deps)
+	@npm install --legacy-peer-deps || (echo ⚠️  Trying with force flag... && npm install --force) || (echo ⚠️  Trying Expo fix... && npx expo install --fix && npm install --legacy-peer-deps)
 	@echo ✅ Frontend dependencies installed
 
 .PHONY: install-backend
 install-backend:
 	@echo ⚙️  Installing backend dependencies...
-	@cd $(BACKEND_DIR) && npm install
+	@cd $(BACKEND_DIR) && if exist node_modules rmdir /s /q node_modules
+	@cd $(BACKEND_DIR) && if exist package-lock.json del package-lock.json
+	@cd $(BACKEND_DIR) && npm cache clean --force
+	@cd $(BACKEND_DIR) && npm install || (echo ⚠️  Trying with legacy peer deps... && npm install --legacy-peer-deps)
 	@echo ✅ Backend dependencies installed
 
 .PHONY: check-requirements
@@ -286,24 +289,22 @@ db-install:
 
 .PHONY: clean
 clean:
+	cls
 	@echo "$(YELLOW)🧹 Cleaning project...$(NC)"
-	@echo "$(YELLOW)Removing node_modules and caches...$(NC)"
+	@echo "$(YELLOW)Removing node_modules, package-lock.json, and caches...$(NC)"
 	@if exist "$(FRONTEND_DIR)\node_modules" rmdir /s /q "$(FRONTEND_DIR)\node_modules"
 	@if exist "$(BACKEND_DIR)\node_modules" rmdir /s /q "$(BACKEND_DIR)\node_modules"
 	@if exist "$(FRONTEND_DIR)\.expo" rmdir /s /q "$(FRONTEND_DIR)\.expo"
+	@if exist "$(FRONTEND_DIR)\package-lock.json" del /q "$(FRONTEND_DIR)\package-lock.json"
+	@if exist "$(BACKEND_DIR)\package-lock.json" del /q "$(BACKEND_DIR)\package-lock.json"
 	@npm cache clean --force >nul 2>&1 || echo ""
 	@echo "$(GREEN)✅ Project cleaned$(NC)"
 
 .PHONY: fix-deps
 fix-deps:
 	@echo "$(YELLOW)🔧 Fixing dependency conflicts...$(NC)"
-	@if exist package-lock.json del package-lock.json
-	@if exist yarn.lock del yarn.lock
-	@if exist node_modules rmdir /s /q node_modules
-	@npm cache clean --force
-	@echo "$(YELLOW)Installing with legacy peer deps...$(NC)"
-	@npm install --legacy-peer-deps
-	@echo "$(GREEN)✅ Dependencies fixed$(NC)"
+	@echo "$(YELLOW)Running comprehensive dependency fix...$(NC)"
+	@fix-dependencies.bat
 
 .PHONY: reset
 reset: clean install

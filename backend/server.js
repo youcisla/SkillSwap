@@ -138,13 +138,9 @@ async function connectToMongoDB() {
     const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/skillswap';
     
     await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       maxPoolSize: 10, // Maintain up to 10 socket connections
       serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      bufferCommands: false, // Disable mongoose buffering
-      bufferMaxEntries: 0, // Disable mongoose buffering
       maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
       autoIndex: process.env.NODE_ENV !== 'production', // Don't build indexes in production
     });

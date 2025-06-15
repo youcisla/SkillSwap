@@ -15,7 +15,7 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import AddSkillScreen from '../screens/skills/AddSkillScreen';
 import SkillManagementScreen from '../screens/skills/SkillManagementScreen';
-import OptimizedOptimizedMainTabNavigator from './OptimizedOptimizedMainTabNavigator';
+import OptimizedMainTabNavigator from './OptimizedMainTabNavigator';
 
 const Stack = createStackNavigator<RootStackParamList>();
 

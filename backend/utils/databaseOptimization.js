@@ -1,6 +1,25 @@
 // Backend optimization: Database indexing and query optimization
 const mongoose = require('mongoose');
 
+// Initialize database with proper setup
+const initializeDatabase = async () => {
+  try {
+    console.log('🔧 Initializing database...');
+    
+    // Set up connection optimizations
+    optimizeConnection();
+    
+    // Create all necessary indexes
+    await createOptimizedIndexes();
+    
+    console.log('✅ Database initialization completed');
+    return true;
+  } catch (error) {
+    console.error('❌ Database initialization failed:', error);
+    throw error;
+  }
+};
+
 // Enhanced indexes for better query performance
 const createOptimizedIndexes = async () => {
   try {
@@ -292,10 +311,6 @@ const optimizeConnection = () => {
   mongoose.set('serverSelectionTimeoutMS', 5000);
   mongoose.set('socketTimeoutMS', 45000);
   
-  // Enable query result caching
-  mongoose.set('bufferCommands', false);
-  mongoose.set('bufferMaxEntries', 0);
-  
   // Disable automatic index creation in production
   if (process.env.NODE_ENV === 'production') {
     mongoose.set('autoIndex', false);
@@ -322,6 +337,8 @@ const performanceMiddleware = (req, res, next) => {
 };
 
 module.exports = {
+  initializeDatabase,
+  createIndexes: createOptimizedIndexes,
   createOptimizedIndexes,
   QueryOptimizer,
   optimizeConnection,
