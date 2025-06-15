@@ -20,6 +20,7 @@ import {
 import SafeAvatar from '../components/SafeAvatar';
 import { BulkActionsBar, SelectableItem, SelectionHeader } from '../components/ui/MultiSelection';
 import { useMultiSelection } from '../hooks/useMultiSelection';
+import { socketService } from '../services/socketService';
 import { useAppDispatch, useAppSelector } from '../store';
 import { fetchMatches, removeMatch } from '../store/slices/matchSlice';
 import { addUserToCache } from '../store/slices/userSlice';
@@ -41,6 +42,8 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [socketError, setSocketError] = useState<string | null>(null);
+  const [socketConnected, setSocketConnected] = useState(false);
 
   // Multi-selection hook
   const matchSelection = useMultiSelection<Match>(
@@ -51,6 +54,67 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     if (user?.id) {
       loadMatches();
+      
+      // Enhanced WebSocket connection and error handling
+      const initializeSocket = () => {
+        try {
+          if (!socketService.isSocketConnected()) {
+            console.log('🔌 Initializing socket connection for matches...');
+            socketService.connect(user.id);
+          }
+          
+          // Setup match-specific event listeners
+          const handleNewMatch = (matchData: any) => {
+            console.log('💖 New match received in MatchesScreen:', matchData);
+            // Refresh matches when a new match is received
+            loadMatches();
+          };
+
+          const handleSocketReconnect = () => {
+            console.log('✅ Socket reconnected in MatchesScreen');
+            setSocketError(null);
+            setSocketConnected(true);
+          };
+
+          const handleSocketDisconnect = (reason: string) => {
+            console.log('🔌 Socket disconnected in MatchesScreen:', reason);
+            setSocketConnected(false);
+            if (reason === 'io server disconnect') {
+              setSocketError('Lost connection to server. Trying to reconnect...');
+            }
+          };
+
+          const handleSocketConnectError = (error: any) => {
+            console.error('❌ Socket connection error in MatchesScreen:', error);
+            setSocketConnected(false);
+            setSocketError('WebSocket connection failed. Some features may not work properly.');
+          };
+
+          // Check initial connection status
+          setSocketConnected(socketService.isSocketConnected());
+
+          // Subscribe to socket events
+          socketService.onNewMatch(handleNewMatch);
+          socketService.onConnectionError(handleSocketConnectError);
+          socketService.onDisconnect(handleSocketDisconnect);
+          socketService.onConnect(handleSocketReconnect);
+
+          return () => {
+            // Cleanup listeners
+            socketService.offNewMatch(handleNewMatch);
+            socketService.offConnectionError(handleSocketConnectError);
+            socketService.offDisconnect(handleSocketDisconnect);
+            socketService.offConnect(handleSocketReconnect);
+          };
+        } catch (error) {
+          console.error('❌ Failed to initialize socket for matches:', error);
+          setSocketError('Failed to initialize real-time features.');
+        }
+      };
+
+      const cleanup = initializeSocket();
+      
+      return cleanup;
     }
   }, [user?.id]);
 
@@ -122,6 +186,7 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     if (!user?.id) return;
     
     try {
+      console.log('🔍 Loading matches for user:', user.id);
       const fetchedMatches = await dispatch(fetchMatches(user.id)).unwrap();
       
       // Cache all matched users in the user store for easy access
@@ -136,15 +201,48 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
           dispatch(addUserToCache(matchData.user2Id));
         }
       });
+
+      console.log('✅ Successfully loaded', fetchedMatches.length, 'matches');
     } catch (error) {
-      console.error('Failed to load matches:', error);
+      console.error('❌ Failed to load matches:', error);
+      
+      // Check if it's a network/socket related error
+      if (error instanceof Error) {
+        if (error.message.includes('socket') || error.message.includes('websocket') || error.message.includes('connection')) {
+          setSocketError('Failed to load matches due to connection issues. Please try again.');
+        } else {
+          Alert.alert(
+            'Error Loading Matches',
+            'There was a problem loading your matches. Please check your internet connection and try again.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Retry', onPress: loadMatches }
+            ]
+          );
+        }
+      }
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadMatches();
-    setRefreshing(false);
+    
+    try {
+      // Clear any previous socket errors on refresh
+      setSocketError(null);
+      
+      // Ensure socket connection is active
+      if (user?.id && !socketService.isSocketConnected()) {
+        console.log('🔄 Re-establishing socket connection during refresh...');
+        socketService.connect(user.id);
+      }
+      
+      await loadMatches();
+    } catch (error) {
+      console.error('❌ Refresh failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleBulkUnmatch = async () => {
@@ -310,7 +408,7 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.skillsTitle}>Shared Skills</Text>
             <View style={styles.skillsContainer}>
               {matchedSkills.slice(0, 3).map((skill, index) => (
-                <Chip key={index} style={styles.skillChip}>
+                <Chip key={`${skill}-${index}`} style={styles.skillChip}>
                   {skill}
                 </Chip>
               ))}
@@ -386,6 +484,27 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
           value={searchQuery}
           style={styles.searchbar}
         />
+        
+        {/* WebSocket Connection Status */}
+        {socketError && (
+          <Card style={[styles.errorCard, { marginTop: 8 }]}>
+            <Card.Content style={styles.errorContent}>
+              <Text style={styles.errorText}>⚠️ {socketError}</Text>
+              <Button 
+                mode="text" 
+                onPress={() => {
+                  setSocketError(null);
+                  if (user?.id && !socketService.isSocketConnected()) {
+                    socketService.connect(user.id);
+                  }
+                }}
+                compact
+              >
+                Retry
+              </Button>
+            </Card.Content>
+          </Card>
+        )}
       </View>
 
       {/* Selection Header */}
@@ -580,6 +699,22 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
+  },
+  errorCard: {
+    backgroundColor: '#ffebee',
+    borderLeftWidth: 4,
+    borderLeftColor: '#f44336',
+  },
+  errorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 14,
+    flex: 1,
   },
 });
 

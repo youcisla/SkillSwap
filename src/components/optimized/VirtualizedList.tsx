@@ -45,7 +45,7 @@ export function VirtualizedList<T>({
   const optimizedRenderItem = ({ item, index }: { item: T; index: number }) => {
     return (
       <OptimizedListItem
-        key={index}
+        key={`item-${index}`}
         isVisible={viewableItems.includes(index.toString())}
       >
         {renderItem({ item, index })}
@@ -53,10 +53,21 @@ export function VirtualizedList<T>({
     );
   };
 
+  // Generate a key extractor to ensure unique keys
+  const keyExtractor = (item: T, index: number) => {
+    // Try to use item.id, item._id, or fallback to index
+    if (item && typeof item === 'object') {
+      const obj = item as any;
+      return obj.id || obj._id || `item-${index}`;
+    }
+    return `item-${index}`;
+  };
+
   return (
     <FlatList
       data={data}
       renderItem={optimizedRenderItem}
+      keyExtractor={keyExtractor}
       getItemLayout={getItemLayout}
       windowSize={windowSize}
       maxToRenderPerBatch={maxToRenderPerBatch}

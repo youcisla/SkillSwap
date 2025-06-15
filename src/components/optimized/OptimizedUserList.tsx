@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { memo, useCallback, useMemo } from 'react';
-import { Animated, FlatList, StyleSheet, View, ViewStyle } from 'react-native';
+import { Animated, FlatList, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { useEntranceAnimation } from '../../hooks/useAnimation';
 import { UserProfile } from '../../types';
@@ -95,22 +95,22 @@ const UserCard = memo<{
             )}
           </View>
           {showFollowButton && (
-            <MaterialCommunityIcons
-              name="account-plus-outline"
-              size={24}
-              color={theme.colors.primary}
-              onPress={handleFollowPress}
-              style={styles.followIcon}
-            />
+            <Pressable style={styles.followIcon} onPress={handleFollowPress}>
+              <MaterialCommunityIcons
+                name="account-plus-outline"
+                size={24}
+                color={theme.colors.primary}
+              />
+            </Pressable>
           )}
         </View>
 
         {skillsPreview.length > 0 && (
           <View style={styles.skillsContainer}>
             {skillsPreview.map((skill, index) => (
-              <View key={`${skill.id}-${index}`} style={[styles.skillChip, { backgroundColor: theme.colors.surfaceVariant }]}>
+              <View key={`${skill?.id}-${index}`} style={[styles.skillChip, { backgroundColor: theme.colors.surfaceVariant }]}>
                 <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                  {skill.name}
+                  {skill?.name || 'Unknown Skill'}
                 </Text>
               </View>
             ))}

@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { memo, useCallback, useMemo } from 'react';
-import { Animated, FlatList, StyleSheet, View, ViewStyle } from 'react-native';
+import { Animated, FlatList, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 import { Chip, Text, useTheme } from 'react-native-paper';
 import { useEntranceAnimation } from '../../hooks/useAnimation';
 import { Match, UserProfile } from '../../types';
@@ -136,24 +136,22 @@ const MatchCard = memo<{
 
         <View style={styles.actionsRow}>
           {onMessagePress && (
-            <View style={styles.actionButton}>
+            <Pressable style={styles.actionButton} onPress={handleMessagePress}>
               <MaterialCommunityIcons
                 name="message-outline"
                 size={24}
                 color={theme.colors.primary}
-                onPress={handleMessagePress}
               />
-            </View>
+            </Pressable>
           )}
           {onUnmatchPress && (
-            <View style={styles.actionButton}>
+            <Pressable style={styles.actionButton} onPress={handleUnmatchPress}>
               <MaterialCommunityIcons
                 name="heart-broken-outline"
                 size={24}
                 color={theme.colors.error}
-                onPress={handleUnmatchPress}
               />
-            </View>
+            </Pressable>
           )}
         </View>
       </EnhancedCard>

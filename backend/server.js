@@ -271,6 +271,14 @@ function setupEnhancedSocket(io) {
       }
     });
 
+    // Handle explicit user room joining (for compatibility)
+    socket.on('join-user-room', (userId) => {
+      if (userId && currentUserId === userId) {
+        socket.join(`user-${userId}`);
+        console.log(`👤 User ${userId} explicitly joined their personal room`);
+      }
+    });
+
     // Enhanced chat management
     socket.on('join-chat', (chatId) => {
       if (currentChatId) {

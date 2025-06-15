@@ -304,14 +304,14 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
                   <Text style={[styles.skillsLabel, { color: colors.success.main }]}>Can teach</Text>
                 </View>
                 <View style={styles.skillsContainer}>
-                  {userProfile.skillsToTeach.slice(0, 2).map((skill) => (
+                  {userProfile.skillsToTeach.slice(0, 2).map((skill, index) => (
                     <Chip 
-                      key={skill.id} 
+                      key={skill?.id || `teach-skill-${index}`} 
                       style={[styles.teachChip, { backgroundColor: colors.success.light }]}
                       textStyle={{ color: colors.success.dark }}
                       compact
                     >
-                      {skill.name}
+                      {skill?.name || 'Unknown Skill'}
                     </Chip>
                   ))}
                   {userProfile.skillsToTeach.length > 2 && (
@@ -386,14 +386,14 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
                 <Text style={[styles.skillsLabel, { color: colors.success.main }]}>Can teach</Text>
               </View>
               <View style={styles.skillsContainer}>
-                {userProfile.skillsToTeach.slice(0, 3).map((skill) => (
+                {userProfile.skillsToTeach.slice(0, 3).map((skill, index) => (
                   <Chip 
-                    key={skill.id} 
+                    key={skill?.id || `teach-skill-${index}`} 
                     style={[styles.teachChip, { backgroundColor: colors.success.light }]}
                     textStyle={{ color: colors.success.dark }}
                     compact
                   >
-                    {skill.name}
+                    {skill?.name || 'Unknown Skill'}
                   </Chip>
                 ))}
                 {userProfile.skillsToTeach.length > 3 && (
@@ -412,14 +412,14 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
                 <Text style={[styles.skillsLabel, { color: colors.primary.main }]}>Wants to learn</Text>
               </View>
               <View style={styles.skillsContainer}>
-                {userProfile.skillsToLearn.slice(0, 3).map((skill) => (
+                {userProfile.skillsToLearn.slice(0, 3).map((skill, index) => (
                   <Chip 
-                    key={skill.id} 
+                    key={skill?.id || `learn-skill-${index}`} 
                     style={[styles.learnChip, { backgroundColor: colors.primary.light }]}
                     textStyle={{ color: colors.primary.dark }}
                     compact
                   >
-                    {skill.name}
+                    {skill?.name || 'Unknown Skill'}
                   </Chip>
                 ))}
                 {userProfile.skillsToLearn.length > 3 && (

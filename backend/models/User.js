@@ -35,25 +35,23 @@ const userSchema = new mongoose.Schema({
   location: {
     type: {
       type: String,
-      enum: ['Point']
+      enum: ['Point'],
+      required: function() {
+        return this.location && this.location.coordinates;
+      }
     },
     coordinates: {
       type: [Number],
+      required: function() {
+        return this.location && this.location.type;
+      },
       validate: {
         validator: function(v) {
-          return Array.isArray(v) && v.length === 2;
+          return !v || (Array.isArray(v) && v.length === 2 && 
+                       v.every(coord => typeof coord === 'number' && !isNaN(coord)));
         },
         message: 'Coordinates must be an array of exactly 2 numbers [longitude, latitude]'
       }
-    },
-    validate: {
-      validator: function(v) {
-        // Allow null/undefined location
-        if (!v) return true;
-        // Require both type and coordinates if location is set
-        return v.type === 'Point' && Array.isArray(v.coordinates) && v.coordinates.length === 2;
-      },
-      message: 'Location must be a valid GeoJSON Point with type and coordinates'
     }
   },
   locationUpdatedAt: {
@@ -125,15 +123,16 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Create geospatial index for location
+userSchema.index({ location: '2dsphere' });
+
 // Hash password before saving
 userSchema.pre('save', async function(next) {
   // Clean up invalid location data
-  if (this.location && (
-    !this.location.type || 
-    !this.location.coordinates || 
-    this.location.updatedAt !== undefined ||
-    (typeof this.location.type !== 'string') ||
-    !Array.isArray(this.location.coordinates)
+  if (this.location && this.location.coordinates && (
+    !Array.isArray(this.location.coordinates) ||
+    this.location.coordinates.length !== 2 ||
+    this.location.coordinates.some(coord => typeof coord !== 'number' || isNaN(coord))
   )) {
     console.log(`🔧 Cleaning invalid location data for user: ${this._id}`);
     this.location = undefined;

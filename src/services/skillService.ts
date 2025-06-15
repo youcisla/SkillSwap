@@ -21,10 +21,31 @@ class SkillService {
 
   async addSkill(userId: string, skillData: SkillForm, type: 'teach' | 'learn'): Promise<Skill> {
     try {
+      // Validate required fields
+      if (!skillData.name || !skillData.category || !skillData.level) {
+        throw new Error('Missing required skill fields: name, category, or level');
+      }
+      
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
+
       console.log('📤 Adding skill via service:', { userId, skillData, type });
+      const payload = { 
+        ...skillData, 
+        userId,
+        // Ensure all required fields are present
+        name: skillData.name.trim(),
+        category: skillData.category,
+        level: skillData.level,
+        description: skillData.description || ''
+      };
+      
+      console.log('📤 Skill payload:', payload);
+      
       const response = await ApiService.post<ApiResponse<Skill>>(
         `/skills/${type}`,
-        { ...skillData, userId }
+        payload
       );
       
       console.log('📥 Skill service response:', response);

@@ -201,6 +201,7 @@ const ProfileScreen: React.FC = () => {
   if (!profileUser) {
     console.error('ProfileScreen: User not found', {
       userId,
+      normalizedUserId,
       isOwnProfile,
       currentUserExists: !!currentUser,
       usersArrayLength: users.length,
@@ -213,7 +214,29 @@ const ProfileScreen: React.FC = () => {
         <EmptyState
           icon={renderIcon("account-question", colors.neutral[400], 32)}
           title="User not found"
-          description={`This user profile could not be loaded. ${__DEV__ ? `(ID: ${userId})` : ''}`}
+          description={
+            isOwnProfile 
+              ? "Your profile couldn't be loaded. Please try refreshing or logging in again."
+              : `This user profile could not be loaded. ${__DEV__ ? `(ID: ${userId})` : ''}`
+          }
+          action={
+            <EnhancedButton
+              title={isOwnProfile ? "Refresh Profile" : "Go Back"}
+              onPress={() => {
+                if (isOwnProfile) {
+                  // Retry fetching own profile
+                  if (user?.id) {
+                    dispatch(fetchUserProfile(user.id));
+                  }
+                } else {
+                  navigation.goBack();
+                }
+              }}
+              variant="primary"
+              size="medium"
+              hapticFeedback
+            />
+          }
         />
       </View>
     );

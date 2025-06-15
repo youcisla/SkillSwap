@@ -6,21 +6,21 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Animated,
-  RefreshControl,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  View,
+    Animated,
+    RefreshControl,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    View,
 } from 'react-native';
 import {
-  Card,
-  Chip,
-  FAB,
-  Searchbar,
-  Text,
-  Title,
-  useTheme
+    Card,
+    Chip,
+    FAB,
+    Searchbar,
+    Text,
+    Title,
+    useTheme
 } from 'react-native-paper';
 import ErrorBoundary from '../components/common/ErrorBoundary';
 import SafeAvatar from '../components/SafeAvatar';
@@ -125,15 +125,21 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
       }
 
       // Sync offline data
-      await syncData();
+      try {
+        await syncData();
+      } catch (syncError) {
+        console.warn('Data sync failed:', syncError);
+      }
       
       setHasDataLoaded(true);
     } catch (error) {
       console.error('Failed to load user data:', error);
       // Trigger error recovery if available
-      triggerHaptic('error');
+      if (triggerHaptic) {
+        triggerHaptic('error');
+      }
     }
-  }, [user?.id, dispatch, syncData, triggerHaptic]);
+  }, [user?.id, dispatch]); // Reduced dependencies
 
   // Enhanced refresh with better UX
   const onRefresh = useCallback(async () => {
@@ -143,14 +149,18 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
         loadUserData(),
         refetchHome()
       ]);
-      triggerHaptic('success');
+      if (triggerHaptic) {
+        triggerHaptic('success');
+      }
     } catch (error) {
       console.error('Refresh failed:', error);
-      triggerHaptic('error');
+      if (triggerHaptic) {
+        triggerHaptic('error');
+      }
     } finally {
       setRefreshing(false);
     }
-  }, [loadUserData, refetchHome, triggerHaptic]);
+  }, [loadUserData, refetchHome]); // Reduced dependencies
 
   // Enhanced search with debouncing and haptic feedback
   const handleSearch = useCallback(() => {
@@ -172,7 +182,7 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
     if (user?.id) {
       loadUserData();
     }
-  }, [user?.id, loadUserData]);
+  }, [user?.id]); // Removed loadUserData from dependencies to prevent infinite loop
 
   // Enhanced loading check
   const isActuallyLoading = (userLoading || skillsLoading || isLoadingHome) && !hasDataLoaded;

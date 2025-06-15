@@ -84,8 +84,8 @@ const enhancedSecurityMiddleware = (app) => {
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req) => {
-      // Skip rate limiting for admin users or in development
-      if (process.env.NODE_ENV === 'development') return false;
+      // Skip rate limiting in development mode
+      if (process.env.NODE_ENV === 'development') return true;
       return req.user && req.user.role === 'admin';
     },
     keyGenerator: (req) => {

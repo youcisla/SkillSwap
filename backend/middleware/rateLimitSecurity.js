@@ -8,6 +8,10 @@ const createRateLimit = (windowMs, max, message) => rateLimit({
   message: { success: false, error: message },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting in development mode
+    return process.env.NODE_ENV === 'development';
+  },
   handler: (req, res) => {
     console.warn(`🚨 Rate limit exceeded: ${req.ip} - ${req.path}`);
     res.status(429).json({

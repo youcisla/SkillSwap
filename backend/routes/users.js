@@ -445,4 +445,81 @@ router.get('/stats/overview',
   }
 );
 
+// Get user dashboard data
+router.get('/:id/dashboard', 
+  auth,
+  async (req, res) => {
+    try {
+      // Check if user can access this dashboard
+      if (req.user.id !== req.params.id && req.user.role !== 'admin') {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Not authorized to access this dashboard' 
+        });
+      }
+
+      const userId = req.params.id;
+      
+      // Validate user ID
+      if (!userId.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid user ID format' 
+        });
+      }
+
+      // Get user basic info
+      const user = await User.findById(userId).select('name email city createdAt');
+      if (!user) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'User not found' 
+        });
+      }
+
+      // Dashboard data structure
+      const dashboardData = {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          city: user.city,
+          memberSince: user.createdAt
+        },
+        stats: {
+          profileViews: 0,
+          skillsShared: 0,
+          sessionsCompleted: 0,
+          rating: 0,
+          totalConnections: 0
+        },
+        recentActivity: [],
+        quickActions: [
+          { id: 'add_skill', label: 'Add New Skill', icon: 'plus' },
+          { id: 'find_matches', label: 'Find Learning Partners', icon: 'users' },
+          { id: 'schedule_session', label: 'Schedule Session', icon: 'calendar' },
+          { id: 'view_messages', label: 'View Messages', icon: 'message-circle' }
+        ]
+      };
+
+      res.json({
+        success: true,
+        data: dashboardData,
+        meta: {
+          cached: false,
+          responseTime: Date.now() - (req.startTime || Date.now())
+        }
+      });
+
+    } catch (error) {
+      console.error('Error fetching user dashboard:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error fetching dashboard data',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+);
+
 module.exports = router;

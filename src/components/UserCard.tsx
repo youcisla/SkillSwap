@@ -77,14 +77,14 @@ const UserCard: React.FC<UserCardProps> = ({
               <View style={styles.skillsSection}>
                 <Paragraph style={styles.skillsLabel}>Can teach:</Paragraph>
                 <View style={styles.skillsContainer}>
-                  {user.skillsToTeach.slice(0, 3).map((skill) => (
+                  {user.skillsToTeach.slice(0, 3).map((skill, index) => (
                     <Chip
-                      key={skill.id}
+                      key={skill?.id || `teach-skill-${index}`}
                       style={[styles.skillChip, styles.teachChip]}
                       textStyle={styles.teachChipText}
                       compact
                     >
-                      {skill.name}
+                      {skill?.name || 'Unknown Skill'}
                     </Chip>
                   ))}
                   {user.skillsToTeach.length > 3 && (
@@ -100,14 +100,14 @@ const UserCard: React.FC<UserCardProps> = ({
               <View style={styles.skillsSection}>
                 <Paragraph style={styles.skillsLabel}>Wants to learn:</Paragraph>
                 <View style={styles.skillsContainer}>
-                  {user.skillsToLearn.slice(0, 3).map((skill) => (
+                  {user.skillsToLearn.slice(0, 3).map((skill, index) => (
                     <Chip
-                      key={skill.id}
+                      key={skill?.id || `learn-${index}`}
                       style={[styles.skillChip, styles.learnChip]}
                       textStyle={styles.learnChipText}
                       compact
                     >
-                      {skill.name}
+                      {skill?.name || 'Unknown Skill'}
                     </Chip>
                   ))}
                   {user.skillsToLearn.length > 3 && (

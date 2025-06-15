@@ -9,8 +9,10 @@ class SocketService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private isConnected = false;
+  private currentUserId: string | null = null;
+  private currentToken: string | null = null;
 
-  connect(userId: string) {
+  connect(userId: string, token?: string) {
     if (this.socket?.connected) {
       console.log('Socket already connected');
       return;
@@ -18,22 +20,31 @@ class SocketService {
 
     console.log('🔌 Connecting to socket server...');
     
+    // Store for reconnection
+    this.currentUserId = userId;
+    this.currentToken = token || null;
+    
     this.socket = io(this.baseUrl, {
       transports: ['websocket', 'polling'],
       timeout: 10000,
       forceNew: false,
     });
 
-    this.setupEventListeners(userId);
+    this.setupEventListeners(userId, token);
   }
 
-  private setupEventListeners(userId: string) {
+  private setupEventListeners(userId: string, token?: string) {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
       console.log('✅ Socket connected:', this.socket?.id);
       this.isConnected = true;
       this.reconnectAttempts = 0;
+      
+      // Authenticate with token if provided
+      if (token) {
+        this.socket?.emit('authenticate', token);
+      }
       
       // Join user's personal room for notifications
       this.socket?.emit('join-user-room', userId);
@@ -200,6 +211,128 @@ class SocketService {
   joinUserRoom(userId: string) {
     if (this.socket?.connected) {
       this.socket.emit('join-user-room', userId);
+    }
+  }
+
+  // Event listener methods for components
+  onNewMessage(callback: (message: any) => void) {
+    if (this.socket) {
+      this.socket.on('new-message', callback);
+    }
+  }
+
+  offNewMessage(callback: (message: any) => void) {
+    if (this.socket) {
+      this.socket.off('new-message', callback);
+    }
+  }
+
+  onNewMatch(callback: (match: any) => void) {
+    if (this.socket) {
+      this.socket.on('new-match', callback);
+    }
+  }
+
+  offNewMatch(callback: (match: any) => void) {
+    if (this.socket) {
+      this.socket.off('new-match', callback);
+    }
+  }
+
+  onConnectionError(callback: (error: any) => void) {
+    if (this.socket) {
+      this.socket.on('connect_error', callback);
+    }
+  }
+
+  offConnectionError(callback: (error: any) => void) {
+    if (this.socket) {
+      this.socket.off('connect_error', callback);
+    }
+  }
+
+  onDisconnect(callback: (reason: string) => void) {
+    if (this.socket) {
+      this.socket.on('disconnect', callback);
+    }
+  }
+
+  offDisconnect(callback: (reason: string) => void) {
+    if (this.socket) {
+      this.socket.off('disconnect', callback);
+    }
+  }
+
+  onConnect(callback: () => void) {
+    if (this.socket) {
+      this.socket.on('connect', callback);
+    }
+  }
+
+  offConnect(callback: () => void) {
+    if (this.socket) {
+      this.socket.off('connect', callback);
+    }
+  }
+
+  onTypingStart(callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.on('typing-start', callback);
+    }
+  }
+
+  offTypingStart(callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.off('typing-start', callback);
+    }
+  }
+
+  onTypingStop(callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.on('typing-stop', callback);
+    }
+  }
+
+  offTypingStop(callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.off('typing-stop', callback);
+    }
+  }
+
+  onUserOnline(callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.on('user-online', callback);
+    }
+  }
+
+  offUserOnline(callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.off('user-online', callback);
+    }
+  }
+
+  onUserOffline(callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.on('user-offline', callback);
+    }
+  }
+
+  offUserOffline(callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.off('user-offline', callback);
+    }
+  }
+
+  // Emit typing indicators
+  startTyping(chatId: string) {
+    if (this.socket?.connected) {
+      this.socket.emit('typing-start', { chatId });
+    }
+  }
+
+  stopTyping(chatId: string) {
+    if (this.socket?.connected) {
+      this.socket.emit('typing-stop', { chatId });
     }
   }
 }
