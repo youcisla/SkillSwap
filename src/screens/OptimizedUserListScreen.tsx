@@ -28,11 +28,12 @@ import useHapticFeedback from '../hooks/useHapticFeedback';
 import { useMultiSelection } from '../hooks/useMultiSelection';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import { useOptimizedQuery } from '../hooks/useOptimizedQuery';
-import { EnhancedApiService } from '../services/enhancedApiService';
 import { useAppDispatch, useAppSelector } from '../store';
 import { checkFollowStatus, followUser, unfollowUser } from '../store/slices/followSlice';
 import { borderRadius, colors, shadows, spacing, typography } from '../theme';
 import { HomeStackParamList, UserProfile } from '../types';
+// Unified search service
+import { unifiedSearchService } from '../services/unifiedSearchService';
 
 // Debounce hook for performance optimization
 const useDebounce = (value: string, delay: number) => {
@@ -89,7 +90,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
   const initialSkillId = route.params?.skillId;
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  // Enhanced data fetching with caching - use single approach
+  // Unified data fetching with caching using only EnhancedApiService
   const {
     data: optimizedUsers,
     isLoading: isLoadingOptimized,
@@ -97,16 +98,18 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
     error: queryError
   } = useOptimizedQuery(
     ['users', debouncedSearchQuery, filterType, user?.id ?? ''],
-    () => {
+    async () => {
       if (!user?.id || typeof user.id !== 'string' || user.id.trim().length === 0) {
         console.warn('Invalid user ID, skipping user search:', user?.id);
-        return Promise.resolve({ success: false, data: [], error: 'Invalid user ID' });
+        return { success: false, data: [], error: 'Invalid user ID' } as const;
       }
       
-      return EnhancedApiService.searchUsers({
+      return unifiedSearchService.searchUsers({
         query: debouncedSearchQuery,
-        filter: filterType,
-        currentUserId: user.id
+        filter: filterType as 'all' | 'teachers' | 'students' | 'recommended',
+        currentUserId: user.id,
+        page: 1,
+        limit: 50
       });
     },
     {
@@ -157,8 +160,6 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
       if (Array.isArray(optimizedUsers)) {
         sourceUsers = optimizedUsers;
       } else if (optimizedUsers.data && Array.isArray(optimizedUsers.data)) {
-        sourceUsers = optimizedUsers.data;
-      } else if (optimizedUsers.success && optimizedUsers.data && Array.isArray(optimizedUsers.data)) {
         sourceUsers = optimizedUsers.data;
       }
     }

@@ -346,7 +346,15 @@ export class EnhancedApiService {
     query: string;
     filter?: string;
     currentUserId?: string | null;
-  }): Promise<any> {
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    success: boolean;
+    data: any[];
+    pagination?: any;
+    meta?: any;
+    error?: string;
+  }> {
     const queryParams = new URLSearchParams();
     
     // Only add query if it's not empty - use 'search' parameter to match backend
@@ -364,6 +372,14 @@ export class EnhancedApiService {
       queryParams.append('currentUserId', params.currentUserId);
     }
     
+    // Add pagination parameters
+    if (params.page) {
+      queryParams.append('page', params.page.toString());
+    }
+    if (params.limit) {
+      queryParams.append('limit', params.limit.toString());
+    }
+    
     const url = `/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     console.log('🔍 EnhancedApiService: Searching users with URL:', url);
     
@@ -371,9 +387,9 @@ export class EnhancedApiService {
       const response = await EnhancedApiService.get(url);
       console.log('🔍 EnhancedApiService: Search response status:', (response as any)?.success, 'data length:', Array.isArray((response as any)?.data) ? (response as any).data.length : 'not array');
       
-      // Normalize response structure - handle different response formats
+      // Standardized response handling
       if (response && typeof response === 'object') {
-        // Check for success and data structure
+        // Primary format: { success: true, data: [], pagination: {}, meta: {} }
         if ('success' in response && 'data' in response && (response as any).success && Array.isArray((response as any).data)) {
           return {
             success: true,
@@ -382,22 +398,22 @@ export class EnhancedApiService {
             meta: (response as any).meta
           };
         }
-        // Handle direct array response
+        // Fallback: direct array response
         else if (Array.isArray(response)) {
           return {
             success: true,
             data: response,
-            pagination: null,
-            meta: null
+            pagination: { page: 1, limit: response.length, total: response.length },
+            meta: { cached: false }
           };
         }
-        // Handle cases where response has data but no success flag
+        // Fallback: response with data property but no success flag
         else if ('data' in response && Array.isArray((response as any).data)) {
           return {
             success: true,
             data: (response as any).data,
-            pagination: (response as any).pagination || null,
-            meta: (response as any).meta || null
+            pagination: (response as any).pagination || { page: 1, limit: (response as any).data.length, total: (response as any).data.length },
+            meta: (response as any).meta || { cached: false }
           };
         }
       }

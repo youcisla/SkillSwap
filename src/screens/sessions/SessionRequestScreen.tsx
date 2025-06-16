@@ -18,6 +18,7 @@ import {
   useTheme,
 } from 'react-native-paper';
 import CustomDateTimePicker from '../../components/DateTimePicker';
+import { SessionValidationService } from '../../services/sessionValidationService';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { createSession } from '../../store/slices/sessionSlice';
 import { RootStackParamList } from '../../types';
@@ -55,21 +56,78 @@ const SessionRequestScreen: React.FC<Props> = ({ navigation, route }) => {
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [validationWarnings, setValidationWarnings] = useState<{ [key: string]: string }>({});
+
+  // Enhanced validation pipeline
+  interface ValidationResult {
+    isValid: boolean;
+    errors: { [key: string]: string };
+    warnings?: { [key: string]: string };
+  }
+
+  const validateSessionData = (sessionData: any): ValidationResult => {
+    const errors: { [key: string]: string } = {};
+    const warnings: { [key: string]: string } = {};
+
+    // Date validation - must be in the future and during reasonable hours
+    const now = new Date();
+    const sessionDate = new Date(sessionData.scheduledAt);
+    
+    if (sessionDate <= now) {
+      errors.date = 'Session must be scheduled for a future date and time';
+    } else if (sessionDate < new Date(now.getTime() + 30 * 60 * 1000)) {
+      warnings.date = 'Sessions scheduled within 30 minutes may be difficult to prepare for';
+    }
+
+    // Check if session is during reasonable hours (8 AM - 10 PM)
+    const hour = sessionDate.getHours();
+    if (hour < 8 || hour > 22) {
+      warnings.time = 'Sessions outside of 8 AM - 10 PM may be inconvenient';
+    }
+
+    // Location validation
+    if (!sessionData.location?.trim()) {
+      errors.location = 'Location is required';
+    } else if (sessionData.location.trim().length < 3) {
+      errors.location = 'Please provide a more detailed location';
+    }
+
+    // Teacher/student validation
+    if (!sessionData.teacherId || !sessionData.studentId) {
+      errors.participants = 'Invalid session participants';
+    }
+
+    if (sessionData.teacherId === sessionData.studentId) {
+      errors.participants = 'Teacher and student cannot be the same person';
+    }
+
+    // Skill validation
+    if (!sessionData.skillId) {
+      errors.skill = 'Skill is required';
+    }
+
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors,
+      warnings
+    };
+  };
 
   const validateForm = () => {
-    const newErrors: { [key: string]: string } = {};
+    const sessionData = {
+      teacherId: isTeaching ? user!.id : otherUserId,
+      studentId: isTeaching ? otherUserId : user!.id,
+      skillId,
+      scheduledAt: date,
+      location: location.trim(),
+      notes: notes.trim(),
+    };
+
+    const validationResult = SessionValidationService.validateSessionData(sessionData);
+    setErrors(validationResult.errors);
+    setValidationWarnings(validationResult.warnings || {});
     
-    // Date validation - must be in the future
-    if (date <= new Date()) {
-      newErrors.date = 'Please select a future date and time';
-    }
-    
-    if (!location.trim()) {
-      newErrors.location = 'Location is required';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return validationResult.isValid;
   };
 
   const handleSubmit = async () => {
@@ -87,27 +145,48 @@ const SessionRequestScreen: React.FC<Props> = ({ navigation, route }) => {
         notes: notes.trim(),
       };
 
-      await dispatch(createSession(sessionData)).unwrap();
+      const result = await dispatch(createSession(sessionData)).unwrap();
       
       Alert.alert(
         'Session Request Sent!',
         'Your session request has been sent. You will be notified when it is accepted.',
         [
           {
-            text: 'OK',
+            text: 'View Calendar',
             onPress: () => {
               navigation.goBack();
-              // Optionally navigate to calendar
-              setTimeout(() => {
-                (navigation as any).navigate('Calendar');
-              }, 500);
+              // Navigate to calendar with proper promise handling instead of setTimeout
+              Promise.resolve().then(() => {
+                navigation.getParent()?.navigate('Calendar');
+              });
             },
+          },
+          {
+            text: 'OK',
+            style: 'default',
+            onPress: () => navigation.goBack(),
           },
         ]
       );
     } catch (error) {
       console.error('Failed to create session:', error);
-      Alert.alert('Error', 'Failed to send session request. Please try again.');
+      
+      // Enhanced error handling with specific messages
+      let errorMessage = 'Failed to send session request. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('validation') || error.message.includes('required')) {
+          errorMessage = 'Please check your session details and try again.';
+        } else if (error.message.includes('network') || error.message.includes('connection')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message.includes('unauthorized') || error.message.includes('forbidden')) {
+          errorMessage = 'You are not authorized to create this session.';
+        } else if (error.message.includes('not found')) {
+          errorMessage = 'User or skill not found. Please try again.';
+        }
+      }
+      
+      Alert.alert('Error', errorMessage);
     }
   };
 

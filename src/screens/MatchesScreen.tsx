@@ -25,6 +25,7 @@ import { useAppDispatch, useAppSelector } from '../store';
 import { fetchMatches, removeMatch } from '../store/slices/matchSlice';
 import { addUserToCache } from '../store/slices/userSlice';
 import { Match, MatchesStackParamList } from '../types';
+import { MatchDataNormalizer } from '../utils/matchDataNormalizer';
 
 type MatchesScreenNavigationProp = StackNavigationProp<MatchesStackParamList, 'MatchesMain'>;
 
@@ -118,61 +119,22 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [user?.id]);
 
-  const getMatchedUser = (match: Match) => {
-    const matchData = match as any;
+  // Enhanced and simplified data extraction using MatchDataNormalizer
+  const getMatchedUser = useCallback((match: Match) => {
+    const normalizedMatch = MatchDataNormalizer.normalizeMatch(match);
+    if (!normalizedMatch) return null;
     
-    // Handle populated match data where user1Id and user2Id are objects
-    const user1Data = matchData.user1Id;
-    const user2Data = matchData.user2Id;
-    
-    // Extract actual IDs for comparison (handle both string IDs and populated objects)
-    const user1Id = typeof user1Data === 'object' ? user1Data.id || user1Data._id : user1Data;
-    const user2Id = typeof user2Data === 'object' ? user2Data.id || user2Data._id : user2Data;
-    
-    // Determine which user is the "other" user
-    if (String(user1Id) === String(user?.id)) {
-      // Current user is user1, so return user2
-      if (typeof user2Data === 'object') {
-        return user2Data;
-      }
-    } else if (String(user2Id) === String(user?.id)) {
-      // Current user is user2, so return user1
-      if (typeof user1Data === 'object') {
-        return user1Data;
-      }
-    }
-    
-    // Fallback to finding in users array using the actual user ID
-    const otherUserId = String(user1Id) === String(user?.id) ? user2Id : user1Id;
-    const foundUser = users.find(u => String(u.id) === String(otherUserId));
-    
-    return foundUser;
-  };
+    return MatchDataNormalizer.getOtherUser(normalizedMatch, user?.id || '');
+  }, [user?.id]);
 
-  const getMatchedSkills = (match: Match) => {
-    const matchData = match as any;
+  // Enhanced skills extraction using MatchDataNormalizer
+  const getMatchedSkills = useCallback((match: Match) => {
+    const normalizedMatch = MatchDataNormalizer.normalizeMatch(match);
+    if (!normalizedMatch) return [];
     
-    // Extract actual IDs for comparison (handle both string IDs and populated objects)
-    const user1Id = typeof matchData.user1Id === 'object' ? matchData.user1Id.id || matchData.user1Id._id : matchData.user1Id;
-    
-    const skills = String(user1Id) === String(user?.id) ? match.user1Skills : match.user2Skills;
-    
-    // Ensure we always return an array
-    if (!Array.isArray(skills)) {
-      return [];
-    }
-    
-    // Handle both string skills and skill objects with skillName property
-    return skills.map(skill => {
-      if (typeof skill === 'string') {
-        return skill;
-      } else if (skill && typeof skill === 'object' && (skill as any).skillName) {
-        return (skill as any).skillName;
-      } else {
-        return '';
-      }
-    }).filter(skillName => skillName && skillName.length > 0);
-  };
+    const skills = MatchDataNormalizer.getOtherUserSkills(normalizedMatch, user?.id || '');
+    return MatchDataNormalizer.extractSkillNames(skills);
+  }, [user?.id]);
 
   const filteredMatches = matches.filter(match => {
     if (!searchQuery) return true;
@@ -364,18 +326,20 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     const matchedSkills = getMatchedSkills(item);
 
     if (!matchedUser) {
-      // Return empty card for missing user data
+      // Return placeholder card for missing user data
       return (
-        <Card style={[styles.matchCard, { backgroundColor: '#f5f5f5' }]}>
+        <Card style={[styles.matchCard, { backgroundColor: '#f5f5f5', opacity: 0.6 }]}>
           <Card.Content>
-            <Text>Match data unavailable</Text>
+            <Text style={{ textAlign: 'center', color: '#666' }}>
+              Match data loading...
+            </Text>
           </Card.Content>
         </Card>
       );
     }
 
-    // Ensure matchedSkills is an array
-    const safeMatchedSkills = Array.isArray(matchedSkills) ? matchedSkills : [];
+    // matchedSkills is already filtered and safe from our simplified function
+    const safeMatchedSkills = matchedSkills;
 
     const matchContent = (
       <Card style={styles.matchCard}>

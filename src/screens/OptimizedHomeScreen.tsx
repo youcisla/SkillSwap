@@ -78,7 +78,7 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
     isLoading: isLoadingHome,
     refetch: refetchHome
   } = useOptimizedQuery(
-    ['home-data', user?.id],
+    ['home-data', user?.id ?? ''],
     () => EnhancedApiService.get(`/users/${user?.id}/dashboard`),
     {
       enabled: !!user?.id,
@@ -448,7 +448,7 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
                   </View>
                   <EnhancedButton
                     title="Find Teachers"
-                    onPress={() => navigation.navigate('UserList')}
+                    onPress={() => navigation.navigate({ name: 'UserList' as any, params: undefined })}
                     variant="outline"
                     size="medium"
                     style={styles.sectionButton}

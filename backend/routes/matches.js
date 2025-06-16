@@ -29,11 +29,42 @@ router.get('/user/:userId', auth, async (req, res) => {
     })
     .populate('user1Id', 'name city profileImage rating totalSessions')
     .populate('user2Id', 'name city profileImage rating totalSessions')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean(); // Use lean for better performance
+
+    // Ensure consistent data structure with standardized user data
+    const normalizedMatches = matches.map(match => {
+      const normalizeUser = (user) => {
+        if (!user) return null;
+        return {
+          id: user._id || user.id,
+          _id: user._id,
+          name: user.name || 'Unknown User',
+          city: user.city || 'Unknown Location',
+          profileImage: user.profileImage || null,
+          rating: user.rating || 0,
+          totalSessions: user.totalSessions || 0
+        };
+      };
+
+      return {
+        id: match._id.toString(),
+        _id: match._id,
+        user1Id: normalizeUser(match.user1Id),
+        user2Id: normalizeUser(match.user2Id),
+        user1Skills: match.user1Skills || [],
+        user2Skills: match.user2Skills || [],
+        compatibilityScore: match.compatibilityScore || 0,
+        status: match.status || 'pending',
+        isActive: match.isActive,
+        createdAt: match.createdAt,
+        updatedAt: match.updatedAt
+      };
+    });
 
     res.json({
       success: true,
-      data: matches
+      data: normalizedMatches
     });
   } catch (error) {
     console.error('Get matches error:', error);
@@ -87,14 +118,23 @@ router.post('/', auth, async (req, res) => {
 
     const populatedMatch = await Match.findById(match._id)
       .populate('user1Id', 'name city profileImage rating totalSessions')
-      .populate('user2Id', 'name city profileImage rating totalSessions');
+      .populate('user2Id', 'name city profileImage rating totalSessions')
+      .lean();
+
+    // Normalize the data structure
+    const normalizedMatch = {
+      ...populatedMatch,
+      id: populatedMatch._id,
+      user1Id: populatedMatch.user1Id ? { ...populatedMatch.user1Id, id: populatedMatch.user1Id._id } : null,
+      user2Id: populatedMatch.user2Id ? { ...populatedMatch.user2Id, id: populatedMatch.user2Id._id } : null
+    };
 
     // Emit real-time match notification to both users
-    emitNewMatch(user1Id, user2Id, populatedMatch);
+    emitNewMatch(user1Id, user2Id, normalizedMatch);
 
     res.status(201).json({
       success: true,
-      data: populatedMatch
+      data: normalizedMatch
     });
   } catch (error) {
     console.error('Create match error:', error);
