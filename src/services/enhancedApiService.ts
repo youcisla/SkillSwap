@@ -341,7 +341,7 @@ export class EnhancedApiService {
     responseCache.invalidate(pattern);
   }
 
-  // Enhanced user search method
+  // Enhanced user search method with better error handling
   static async searchUsers(params: {
     query: string;
     filter?: string;
@@ -367,7 +367,55 @@ export class EnhancedApiService {
     const url = `/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     console.log('🔍 EnhancedApiService: Searching users with URL:', url);
     
-    return EnhancedApiService.get(url);
+    try {
+      const response = await EnhancedApiService.get(url);
+      console.log('🔍 EnhancedApiService: Search response status:', (response as any)?.success, 'data length:', Array.isArray((response as any)?.data) ? (response as any).data.length : 'not array');
+      
+      // Normalize response structure - handle different response formats
+      if (response && typeof response === 'object') {
+        // Check for success and data structure
+        if ('success' in response && 'data' in response && (response as any).success && Array.isArray((response as any).data)) {
+          return {
+            success: true,
+            data: (response as any).data,
+            pagination: (response as any).pagination,
+            meta: (response as any).meta
+          };
+        }
+        // Handle direct array response
+        else if (Array.isArray(response)) {
+          return {
+            success: true,
+            data: response,
+            pagination: null,
+            meta: null
+          };
+        }
+        // Handle cases where response has data but no success flag
+        else if ('data' in response && Array.isArray((response as any).data)) {
+          return {
+            success: true,
+            data: (response as any).data,
+            pagination: (response as any).pagination || null,
+            meta: (response as any).meta || null
+          };
+        }
+      }
+      
+      console.warn('🔍 EnhancedApiService: Unexpected response format:', response);
+      return {
+        success: false,
+        data: [],
+        error: 'Unexpected response format'
+      };
+    } catch (error: any) {
+      console.error('🔍 EnhancedApiService: Search error:', error);
+      return {
+        success: false,
+        data: [],
+        error: error.message || 'Search failed'
+      };
+    }
   }
 
   // Enhanced chat methods

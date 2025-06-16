@@ -96,7 +96,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
     refetch: refetchUsers,
     error: queryError
   } = useOptimizedQuery(
-    ['users', debouncedSearchQuery, filterType, user?.id],
+    ['users', debouncedSearchQuery, filterType, user?.id ?? ''],
     () => {
       if (!user?.id || typeof user.id !== 'string' || user.id.trim().length === 0) {
         console.warn('Invalid user ID, skipping user search:', user?.id);

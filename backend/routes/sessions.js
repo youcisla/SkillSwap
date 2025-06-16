@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Session = require('../models/Session');
 const User = require('../models/User');
 const Skill = require('../models/Skill');
@@ -36,53 +37,138 @@ router.get('/user/:userId', auth, async (req, res) => {
 // Create a session
 router.post('/', auth, async (req, res) => {
   try {
+    console.log('🎯 Session creation request received');
+    console.log('📝 Request body:', JSON.stringify(req.body, null, 2));
+    console.log('👤 Auth user ID:', req.userId);
+    
     const { teacherId, studentId, skillId, scheduledAt, location, notes } = req.body;
 
-    // Validate users exist
-    const teacher = await User.findById(teacherId);
-    const student = await User.findById(studentId);
-    const skill = await Skill.findById(skillId);
-
-    if (!teacher || !student || !skill) {
-      return res.status(404).json({
+    // Basic validation
+    if (!teacherId || !studentId || !skillId || !scheduledAt) {
+      console.log('❌ Missing required fields');
+      return res.status(400).json({
         success: false,
-        error: 'Teacher, student, or skill not found'
+        error: 'Missing required fields: teacherId, studentId, skillId, scheduledAt'
       });
     }
 
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(teacherId) || !mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(skillId)) {
+      console.log('❌ Invalid ObjectId format');
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid ID format'
+      });
+    }
+
+    // Validate date format
+    const sessionDate = new Date(scheduledAt);
+    if (isNaN(sessionDate.getTime())) {
+      console.log('❌ Invalid date format');
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid date format'
+      });
+    }
+
+    // Validate users exist
+    console.log('🔍 Validating teacher:', teacherId);
+    const teacher = await User.findById(teacherId);
+    if (!teacher) {
+      console.log('❌ Teacher not found');
+      return res.status(404).json({
+        success: false,
+        error: 'Teacher not found'
+      });
+    }
+    console.log('✅ Teacher found:', teacher.name);
+
+    console.log('🔍 Validating student:', studentId);
+    const student = await User.findById(studentId);
+    if (!student) {
+      console.log('❌ Student not found');
+      return res.status(404).json({
+        success: false,
+        error: 'Student not found'
+      });
+    }
+    console.log('✅ Student found:', student.name);
+
+    console.log('🔍 Validating skill:', skillId);
+    const skill = await Skill.findById(skillId);
+    if (!skill) {
+      console.log('❌ Skill not found');
+      return res.status(404).json({
+        success: false,
+        error: 'Skill not found'
+      });
+    }
+    console.log('✅ Skill found:', skill.name);
+
     // Check if user is either teacher or student
     if (req.userId !== teacherId && req.userId !== studentId) {
+      console.log('❌ Authorization failed');
       return res.status(403).json({
         success: false,
         error: 'You can only create sessions for yourself'
       });
     }
 
-    const session = new Session({
-      teacherId,
-      studentId,
-      skillId,
-      scheduledAt: new Date(scheduledAt),
-      location,
-      notes
-    });
+    console.log('🔧 Creating session object');
+    const sessionData = {
+      teacherId: new mongoose.Types.ObjectId(teacherId),
+      studentId: new mongoose.Types.ObjectId(studentId),
+      skillId: new mongoose.Types.ObjectId(skillId),
+      scheduledAt: sessionDate,
+      location: location || '',
+      notes: notes || ''
+    };
+    console.log('📋 Session data:', sessionData);
 
-    await session.save();
+    const session = new Session(sessionData);
+    console.log('💾 Saving session to database');
+    const savedSession = await session.save();
+    console.log('✅ Session saved with ID:', savedSession._id);
 
-    const populatedSession = await Session.findById(session._id)
+    console.log('📚 Populating session data');
+    const populatedSession = await Session.findById(savedSession._id)
       .populate('teacherId', 'name profileImage')
       .populate('studentId', 'name profileImage')
       .populate('skillId', 'name category');
 
+    console.log('🎉 Session created successfully');
     res.status(201).json({
       success: true,
       data: populatedSession
     });
   } catch (error) {
-    console.error('Create session error:', error);
+    console.error('💥 Create session error:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Stack trace:', error.stack);
+    
+    // Handle different types of errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: validationErrors
+      });
+    }
+    
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid data format',
+        details: error.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      error: 'Failed to create session'
+      error: 'Failed to create session',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 });

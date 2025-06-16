@@ -48,6 +48,7 @@ router.get('/',
   auth,
   async (req, res) => {
     try {
+      req.startTime = Date.now(); // Add this line for performance tracking
       const { page = 1, limit = 20, search, skills, location, filter, currentUserId } = req.query;
       const skip = (page - 1) * limit;
 
@@ -97,7 +98,10 @@ router.get('/',
 
       console.log('Users search query:', JSON.stringify(query, null, 2));
 
-      // Use aggregation pipeline for better performance with proper skill population
+      // Add isActive filter by default
+      query.isActive = { $ne: false };
+
+      // Enhanced aggregation pipeline with better error handling
       const users = await User.aggregate([
         { $match: query },
         {
@@ -105,7 +109,10 @@ router.get('/',
             from: 'skills',
             localField: 'skillsToTeach',
             foreignField: '_id',
-            as: 'skillsToTeach'
+            as: 'skillsToTeach',
+            pipeline: [
+              { $project: { name: 1, level: 1, category: 1, description: 1 } }
+            ]
           }
         },
         {
@@ -113,17 +120,21 @@ router.get('/',
             from: 'skills',
             localField: 'skillsToLearn',
             foreignField: '_id',
-            as: 'skillsToLearn'
+            as: 'skillsToLearn',
+            pipeline: [
+              { $project: { name: 1, level: 1, category: 1, description: 1 } }
+            ]
+          }
+        },
+        {
+          $addFields: {
+            id: '$_id'
           }
         },
         {
           $project: {
             password: 0,
-            __v: 0,
-            'skillsToTeach.createdAt': 0,
-            'skillsToTeach.updatedAt': 0,
-            'skillsToLearn.createdAt': 0,
-            'skillsToLearn.updatedAt': 0
+            __v: 0
           }
         },
         { $skip: skip },
@@ -132,6 +143,8 @@ router.get('/',
       ]);
 
       const total = await User.countDocuments(query);
+
+      console.log(`Found ${users.length} users out of ${total} total`);
 
       res.json({
         success: true,
@@ -155,7 +168,7 @@ router.get('/',
       res.status(500).json({ 
         success: false, 
         message: 'Error fetching users',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
   }
