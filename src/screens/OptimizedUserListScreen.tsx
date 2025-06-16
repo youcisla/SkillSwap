@@ -31,7 +31,6 @@ import { useOptimizedQuery } from '../hooks/useOptimizedQuery';
 import { EnhancedApiService } from '../services/enhancedApiService';
 import { useAppDispatch, useAppSelector } from '../store';
 import { checkFollowStatus, followUser, unfollowUser } from '../store/slices/followSlice';
-import { searchUsers } from '../store/slices/userSlice';
 import { borderRadius, colors, shadows, spacing, typography } from '../theme';
 import { HomeStackParamList, UserProfile } from '../types';
 
@@ -90,79 +89,47 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
   const initialSkillId = route.params?.skillId;
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  // Enhanced data fetching with caching
+  // Enhanced data fetching with caching - use single approach
   const {
     data: optimizedUsers,
     isLoading: isLoadingOptimized,
     refetch: refetchUsers,
     error: queryError
   } = useOptimizedQuery(
-    ['users', debouncedSearchQuery, filterType],
-    () => EnhancedApiService.searchUsers({
-      query: debouncedSearchQuery,
-      filter: filterType,
-      currentUserId: user?.id || null
-    }),
+    ['users', debouncedSearchQuery, filterType, user?.id],
+    () => {
+      if (!user?.id || typeof user.id !== 'string' || user.id.trim().length === 0) {
+        console.warn('Invalid user ID, skipping user search:', user?.id);
+        return Promise.resolve({ success: false, data: [], error: 'Invalid user ID' });
+      }
+      
+      return EnhancedApiService.searchUsers({
+        query: debouncedSearchQuery,
+        filter: filterType,
+        currentUserId: user.id
+      });
+    },
     {
-      enabled: !!user?.id && typeof user.id === 'string' && user.id.trim().length > 0, // Enhanced validation
+      enabled: !!user?.id && typeof user.id === 'string' && user.id.trim().length > 0,
       staleTime: 5 * 60 * 1000, // 5 minutes
       cacheTime: 10 * 60 * 1000, // 10 minutes
+      retry: 2
     }
   );
 
-  // Load users when debounced search query or filter changes
-  useEffect(() => {
-    if (currentUser && user?.id && typeof user.id === 'string' && user.id.trim().length > 0) {
-      loadUsers();
-    }
-  }, [debouncedSearchQuery, filterType, currentUser?.id, user?.id]);
-
-  const loadUsers = useCallback(async () => {
-    if (!user?.id || typeof user.id !== 'string' || user.id.trim().length === 0) {
-      console.warn('Invalid user ID, skipping user search:', user?.id);
-      return;
-    }
-    
-    try {
-      const filters: any = {};
-      
-      // Only add filters if they have valid values
-      if (initialSkillId) {
-        filters.skillId = initialSkillId;
-      }
-      
-      if (user?.id) {
-        filters.currentUserId = user.id;
-      }
-      
-      if (debouncedSearchQuery.trim()) {
-        await dispatch(searchUsers({
-          query: debouncedSearchQuery,
-          filters
-        })).unwrap();
-      } else {
-        await dispatch(searchUsers({
-          query: '',
-          filters
-        })).unwrap();
-      }
-    } catch (error) {
-      console.error('Failed to load users:', error);
-    }
-  }, [debouncedSearchQuery, initialSkillId, user?.id, dispatch]);
+  // Remove the duplicate loadUsers effect and function since we're using useOptimizedQuery
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await Promise.all([
-        loadUsers(),
-        syncData(), // Sync offline data
-        refetchUsers() // Refresh cached data
+        refetchUsers(), // Use the query refetch function
+        syncData() // Sync offline data
       ]);
     } finally {
       setRefreshing(false);
     }
-  }, [loadUsers, syncData, refetchUsers]);
+  }, [refetchUsers, syncData]);
 
   const handleFollowToggle = useCallback(async (userId: string) => {
     if (!user?.id) return;
@@ -181,29 +148,29 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   }, [user?.id, isFollowing, dispatch, triggerHaptic]);
 
-  // Enhanced filtering with performance optimization
+  // Enhanced filtering with performance optimization - use optimized data
   const filteredUsers = React.useMemo(() => {
-    if (!users || users.length === 0) return [];
+    // Extract users from the API response - handle both direct array and object with data property
+    let sourceUsers: UserProfile[] = [];
     
-    const filtered = users.filter(userProfile => {
+    if (optimizedUsers) {
+      if (Array.isArray(optimizedUsers)) {
+        sourceUsers = optimizedUsers;
+      } else if (optimizedUsers.data && Array.isArray(optimizedUsers.data)) {
+        sourceUsers = optimizedUsers.data;
+      } else if (optimizedUsers.success && optimizedUsers.data && Array.isArray(optimizedUsers.data)) {
+        sourceUsers = optimizedUsers.data;
+      }
+    }
+    
+    console.log('🔍 OptimizedUserListScreen: Source users:', sourceUsers.length, 'filterType:', filterType);
+    
+    if (!sourceUsers || sourceUsers.length === 0) return [];
+    
+    const filtered = sourceUsers.filter(userProfile => {
       if (!userProfile || userProfile.id === user?.id) return false;
 
-      // Search filter
-      if (debouncedSearchQuery) {
-        const query = debouncedSearchQuery.toLowerCase();
-        const matchesName = userProfile.name?.toLowerCase().includes(query);
-        const matchesCity = userProfile.city?.toLowerCase().includes(query);
-        const matchesSkills = userProfile.skillsToTeach?.some(skill => 
-          skill.name?.toLowerCase().includes(query)
-        ) || userProfile.skillsToLearn?.some(skill => 
-          skill.name?.toLowerCase().includes(query)
-        );
-        
-        if (!matchesName && !matchesCity && !matchesSkills) {
-          return false;
-        }
-      }
-
+      // Backend should handle most filtering, but we keep client-side filter logic for type filtering
       // Type filter with enhanced logic
       if (filterType === 'teachers' && currentUser?.skillsToLearn) {
         const hasMatchingSkills = currentUser.skillsToLearn.some(learnSkill =>
@@ -224,8 +191,9 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
       return true;
     });
 
+    console.log('🔍 OptimizedUserListScreen: Filtered users:', filtered.length);
     return filtered;
-  }, [users, user?.id, debouncedSearchQuery, filterType, currentUser]);
+  }, [optimizedUsers, user?.id, filterType, currentUser]);
 
   // Enhanced compatibility calculation
   const calculateCompatibility = useCallback((userProfile: UserProfile): number => {
@@ -320,7 +288,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
                   ))}
                   {userProfile.skillsToTeach.length > 2 && (
                     <Chip style={styles.moreChip} compact>
-                      +{userProfile.skillsToTeach.length - 2}
+                      <Text>+{userProfile.skillsToTeach.length - 2}</Text>
                     </Chip>
                   )}
                 </View>
@@ -405,7 +373,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
                 ))}
                 {userProfile.skillsToTeach.length > 3 && (
                   <Chip style={styles.moreChip} compact>
-                    +{userProfile.skillsToTeach.length - 3}
+                    <Text>+{userProfile.skillsToTeach.length - 3}</Text>
                   </Chip>
                 )}
               </View>
@@ -431,7 +399,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
                 ))}
                 {userProfile.skillsToLearn.length > 3 && (
                   <Chip style={styles.moreChip} compact>
-                    +{userProfile.skillsToLearn.length - 3}
+                    <Text>+{userProfile.skillsToLearn.length - 3}</Text>
                   </Chip>
                 )}
               </View>

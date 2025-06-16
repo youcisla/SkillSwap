@@ -225,7 +225,9 @@ const OptimizedMatchList: React.FC<OptimizedMatchListProps> = ({
   );
 
   const keyExtractor = useCallback(
-    (item: typeof matchesWithUsers[0]) => String(item.match.id),
+    (item: typeof matchesWithUsers[0]) => {
+      return String(item.match.id || `${item.match.user1Id}-${item.match.user2Id}`);
+    },
     []
   );
 

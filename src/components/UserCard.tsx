@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Button, Card, Chip, Paragraph, Title } from 'react-native-paper';
 import { UserProfile } from '../types';
+import { safeGetKey, safeGetProfileImage, safeRenderSkill, safeRenderText, safeRenderUserName } from '../utils/safeRender';
 import SafeAvatar from './SafeAvatar';
 
 interface UserCardProps {
@@ -33,13 +34,13 @@ const UserCard: React.FC<UserCardProps> = ({
         <View style={styles.header}>
           <SafeAvatar
             size={60}
-            source={user.profileImage ? { uri: user.profileImage } : undefined}
-            fallbackText={user.name}
+            source={safeGetProfileImage(user)}
+            fallbackText={safeRenderUserName(user)}
             style={styles.avatar}
           />
           <View style={styles.userInfo}>
-            <Title style={styles.name}>{user.name}</Title>
-            <Paragraph style={styles.location}>{user.city}</Paragraph>
+            <Title style={styles.name}>{safeRenderUserName(user)}</Title>
+            <Paragraph style={styles.location}>{safeRenderText(user.city)}</Paragraph>
             {user.rating && (
               <View style={styles.ratingContainer}>
                 <Paragraph style={styles.rating}>⭐ {user.rating.toFixed(1)}</Paragraph>
@@ -79,12 +80,12 @@ const UserCard: React.FC<UserCardProps> = ({
                 <View style={styles.skillsContainer}>
                   {user.skillsToTeach.slice(0, 3).map((skill, index) => (
                     <Chip
-                      key={skill?.id || skill?.name || `teach-${user.id}-${index}`}
+                      key={safeGetKey(skill, index, `teach-${user.id}`)}
                       style={[styles.skillChip, styles.teachChip]}
                       textStyle={styles.teachChipText}
                       compact
                     >
-                      {skill?.name || 'Unknown Skill'}
+                      {safeRenderSkill(skill)}
                     </Chip>
                   ))}
                   {user.skillsToTeach.length > 3 && (
@@ -102,12 +103,12 @@ const UserCard: React.FC<UserCardProps> = ({
                 <View style={styles.skillsContainer}>
                   {user.skillsToLearn.slice(0, 3).map((skill, index) => (
                     <Chip
-                      key={skill?.id || skill?.name || `learn-${user.id}-${index}`}
+                      key={safeGetKey(skill, index, `learn-${user.id}`)}
                       style={[styles.skillChip, styles.learnChip]}
                       textStyle={styles.learnChipText}
                       compact
                     >
-                      {skill?.name || 'Unknown Skill'}
+                      {safeRenderSkill(skill)}
                     </Chip>
                   ))}
                   {user.skillsToLearn.length > 3 && (

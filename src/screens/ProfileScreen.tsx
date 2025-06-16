@@ -190,8 +190,7 @@ const ProfileScreen: React.FC = () => {
       // Add cancel option
       skillOptions.push({
         text: 'Cancel',
-        onPress: () => {},
-        style: 'cancel' as const
+        onPress: () => {}
       });
 
       Alert.alert(

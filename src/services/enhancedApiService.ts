@@ -349,9 +349,9 @@ export class EnhancedApiService {
   }): Promise<any> {
     const queryParams = new URLSearchParams();
     
-    // Only add query if it's not empty
+    // Only add query if it's not empty - use 'search' parameter to match backend
     if (params.query && params.query.trim()) {
-      queryParams.append('q', params.query.trim());
+      queryParams.append('search', params.query.trim());
     }
     
     // Add filter type if provided

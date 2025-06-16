@@ -37,6 +37,16 @@ export function VirtualizedList<T>({
     setViewableItems(items.map((item: any) => item.key || item.index.toString()));
   }, []);
 
+  // Generate a key extractor to ensure unique keys
+  const keyExtractor = useCallback((item: T, index: number) => {
+    // Try to use item.id, item._id, or fallback to index
+    if (item && typeof item === 'object') {
+      const obj = item as any;
+      return String(obj.id || obj._id || `item-${index}`);
+    }
+    return `item-${index}`;
+  }, []);
+
   const viewabilityConfig = useMemo(() => ({
     itemVisiblePercentThreshold: 50,
     minimumViewTime: 300,
@@ -50,25 +60,15 @@ export function VirtualizedList<T>({
   ], [viewabilityConfig, onViewableItemsChanged]);
 
   const optimizedRenderItem = useCallback(({ item, index }: { item: T; index: number }) => {
+    const itemKey = keyExtractor(item, index);
     return (
       <OptimizedListItem
-        key={`item-${index}`}
-        isVisible={viewableItems.includes(index.toString())}
+        isVisible={viewableItems.includes(itemKey)}
       >
         {renderItem({ item, index })}
       </OptimizedListItem>
     );
-  }, [viewableItems, renderItem]);
-
-  // Generate a key extractor to ensure unique keys
-  const keyExtractor = useCallback((item: T, index: number) => {
-    // Try to use item.id, item._id, or fallback to index
-    if (item && typeof item === 'object') {
-      const obj = item as any;
-      return String(obj.id || obj._id || `item-${index}`);
-    }
-    return `item-${index}`;
-  }, []);
+  }, [viewableItems, renderItem, keyExtractor]);
 
   return (
     <FlatList

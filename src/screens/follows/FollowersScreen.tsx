@@ -2,19 +2,19 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  View,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    View,
 } from 'react-native';
 import {
-  Button,
-  Card,
-  Chip,
-  Paragraph,
-  Searchbar,
-  Text,
-  Title
+    Button,
+    Card,
+    Chip,
+    Paragraph,
+    Searchbar,
+    Text,
+    Title
 } from 'react-native-paper';
 import SafeAvatar from '../../components/SafeAvatar';
 import { useAppDispatch, useAppSelector } from '../../store';
@@ -118,7 +118,7 @@ const FollowersScreen: React.FC<Props> = ({ navigation, route }) => {
               ))}
               {follower.skillsToTeach.length > 3 && (
                 <Chip style={styles.moreChip} compact>
-                  +{follower.skillsToTeach.length - 3}
+                  <Text>+{follower.skillsToTeach.length - 3}</Text>
                 </Chip>
               )}
             </View>

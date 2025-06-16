@@ -87,10 +87,14 @@ router.post('/teach', [
       }
     }
 
+    // Escape regex special characters in skill name to prevent ReDoS
+    function escapeRegex(str) {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
     // Check if skill already exists for this user
     const existingSkill = await Skill.findOne({
       userId,
-      name: { $regex: new RegExp(`^${name}$`, 'i') },
+      name: { $regex: new RegExp(`^${escapeRegex(name)}$`, 'i') },
       type: 'teach',
       isActive: true
     });
@@ -161,10 +165,14 @@ router.post('/learn', [
       }
     }
 
+    // Escape regex special characters in skill name to prevent ReDoS
+    function escapeRegex(str) {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
     // Check if skill already exists for this user
     const existingSkill = await Skill.findOne({
       userId,
-      name: { $regex: new RegExp(`^${name}$`, 'i') },
+      name: { $regex: new RegExp(`^${escapeRegex(name)}$`, 'i') },
       type: 'learn',
       isActive: true
     });

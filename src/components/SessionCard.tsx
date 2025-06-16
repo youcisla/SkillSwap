@@ -81,7 +81,9 @@ const SessionCard: React.FC<SessionCardProps> = ({
       <Card.Content>
         <View style={styles.header}>
           <View style={styles.sessionInfo}>
-            <Title style={styles.skillName}>Guitar Lesson</Title>
+            <Title style={styles.skillName}>
+              {(session.skillId as any)?.name || session.skillId || 'Unknown Skill'}
+            </Title>
             <View style={styles.statusContainer}>
               <Chip
                 style={[styles.statusChip, { backgroundColor: getStatusColor(session.status) + '20' }]}

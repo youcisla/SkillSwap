@@ -126,7 +126,11 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleSave = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setSnackbarMessage('User not found. Please log in again.');
+      setSnackbarVisible(true);
+      return;
+    }
 
     if (!form.name.trim() || !form.city.trim()) {
       setSnackbarMessage('Name and city are required');
@@ -135,26 +139,33 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
+      console.log('EditProfile: Starting profile update process');
+      
       // First, upload the profile image if it was changed
       let updatedForm = { ...form };
       if (profileImage && profileImage !== currentUser?.profileImage) {
         try {
+          console.log('EditProfile: Uploading new profile image');
           const imageUrl = await userService.uploadProfileImage(user.id, profileImage);
+          console.log('EditProfile: Image uploaded successfully:', imageUrl);
           updatedForm = { ...form, profileImage: imageUrl };
         } catch (imageError) {
-          console.error('Failed to upload profile image:', imageError);
-          setSnackbarMessage('Failed to upload profile image');
+          console.error('EditProfile: Failed to upload profile image:', imageError);
+          setSnackbarMessage('Failed to upload profile image. Please try again.');
           setSnackbarVisible(true);
           return;
         }
       }
 
+      console.log('EditProfile: Updating profile with data:', updatedForm);
+      
       // Then update the profile with all data including the new image URL
       await dispatch(updateUserProfile({ 
         userId: user.id, 
         data: updatedForm 
       })).unwrap();
       
+      console.log('EditProfile: Profile updated successfully');
       setSnackbarMessage('Profile updated successfully');
       setSnackbarVisible(true);
       
@@ -163,8 +174,9 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         navigation.goBack();
       }, 1500);
     } catch (error) {
-      console.error('Failed to update profile:', error);
-      setSnackbarMessage('Failed to update profile');
+      console.error('EditProfile: Failed to update profile:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update profile';
+      setSnackbarMessage(errorMessage);
       setSnackbarVisible(true);
     }
   };

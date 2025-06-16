@@ -48,46 +48,82 @@ router.get('/',
   auth,
   async (req, res) => {
     try {
-      const { page = 1, limit = 20, search, skills, location } = req.query;
+      const { page = 1, limit = 20, search, skills, location, filter, currentUserId } = req.query;
       const skip = (page - 1) * limit;
 
       // Build query with optimization
       let query = {};
       
+      // Exclude current user from results
+      if (currentUserId && currentUserId !== 'undefined' && currentUserId !== null) {
+        query._id = { $ne: currentUserId };
+      }
+
       if (search) {
         query.$or = [
           { name: { $regex: search, $options: 'i' } },
           { email: { $regex: search, $options: 'i' } },
-          { bio: { $regex: search, $options: 'i' } }
+          { bio: { $regex: search, $options: 'i' } },
+          { city: { $regex: search, $options: 'i' } }
         ];
       }
 
       if (skills) {
         const skillArray = Array.isArray(skills) ? skills : [skills];
-        query['skills.name'] = { $in: skillArray };
+        // Search in both skillsToTeach and skillsToLearn
+        const skillsQuery = {
+          $or: [
+            { 'skillsToTeach.name': { $in: skillArray } },
+            { 'skillsToLearn.name': { $in: skillArray } }
+          ]
+        };
+        
+        // If we already have a $or condition, combine them properly
+        if (query.$or) {
+          query = {
+            $and: [
+              { $or: query.$or },
+              skillsQuery
+            ]
+          };
+        } else {
+          query = { ...query, ...skillsQuery };
+        }
       }
 
       if (location) {
-        query.location = { $regex: location, $options: 'i' };
+        query.city = { $regex: location, $options: 'i' };
       }
 
-      // Use aggregation pipeline for better performance
+      console.log('Users search query:', JSON.stringify(query, null, 2));
+
+      // Use aggregation pipeline for better performance with proper skill population
       const users = await User.aggregate([
         { $match: query },
         {
           $lookup: {
             from: 'skills',
-            localField: 'skills',
+            localField: 'skillsToTeach',
             foreignField: '_id',
-            as: 'skillDetails'
+            as: 'skillsToTeach'
+          }
+        },
+        {
+          $lookup: {
+            from: 'skills',
+            localField: 'skillsToLearn',
+            foreignField: '_id',
+            as: 'skillsToLearn'
           }
         },
         {
           $project: {
             password: 0,
             __v: 0,
-            'skillDetails.createdAt': 0,
-            'skillDetails.updatedAt': 0
+            'skillsToTeach.createdAt': 0,
+            'skillsToTeach.updatedAt': 0,
+            'skillsToLearn.createdAt': 0,
+            'skillsToLearn.updatedAt': 0
           }
         },
         { $skip: skip },
@@ -307,8 +343,16 @@ router.post('/:id/upload-image',
       );
 
       if (!user) {
-        // Clean up uploaded file if user not found
-        fs.unlinkSync(req.file.path);
+        // Clean up uploaded file if user not found, with path validation and async operation
+        const uploadsDir = path.resolve('uploads/profile-images');
+        const uploadedFilePath = path.resolve(req.file.path);
+        if (uploadedFilePath.startsWith(uploadsDir)) {
+          fs.unlink(uploadedFilePath, (err) => {
+            if (err) {
+              console.error('Error deleting uploaded file:', err);
+            }
+          });
+        }
         return res.status(404).json({ 
           success: false, 
           message: 'User not found' 
@@ -321,10 +365,7 @@ router.post('/:id/upload-image',
           profileImage: imageUrl,
           filename: req.file.filename
         },
-        message: 'Profile image uploaded successfully',
-        meta: {
-          responseTime: Date.now() - req.startTime
-        }
+        message: 'Profile image uploaded successfully'
       });
 
     } catch (error) {
@@ -332,7 +373,15 @@ router.post('/:id/upload-image',
       
       // Clean up uploaded file on error
       if (req.file) {
-        fs.unlinkSync(req.file.path);
+        const uploadsDir = path.resolve('uploads/profile-images');
+        const uploadedFilePath = path.resolve(req.file.path);
+        if (uploadedFilePath.startsWith(uploadsDir)) {
+          fs.unlink(uploadedFilePath, (err) => {
+            if (err) {
+              console.error('Error deleting uploaded file:', err);
+            }
+          });
+        }
       }
 
       res.status(500).json({ 
@@ -368,9 +417,15 @@ router.delete('/:id',
 
       // Clean up profile image if exists
       if (user.profileImage) {
-        const imagePath = path.join(__dirname, '..', user.profileImage);
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath);
+        const uploadsDir = path.resolve('uploads/profile-images');
+        const imagePath = path.resolve(path.join(__dirname, '..', user.profileImage));
+        // Ensure the imagePath is within the uploads directory to prevent path traversal
+        if (imagePath.startsWith(uploadsDir)) {
+          fs.unlink(imagePath, (err) => {
+            if (err) {
+              console.error('Error deleting profile image:', err);
+            }
+          });
         }
       }
 

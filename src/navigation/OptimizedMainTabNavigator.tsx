@@ -15,7 +15,7 @@ import {
 } from '../types';
 
 // Import optimized screens
-import CalendarScreen from '../screens/CalendarScreen';
+import EnhancedCalendarScreen from '../screens/EnhancedCalendarScreen';
 import MatchesScreen from '../screens/MatchesScreen';
 import OptimizedHomeScreen from '../screens/OptimizedHomeScreen';
 import OptimizedMessagesScreen from '../screens/OptimizedMessagesScreen';
@@ -180,7 +180,7 @@ function CalendarStackNavigator() {
     <CalendarStack.Navigator>
       <CalendarStack.Screen 
         name="CalendarMain" 
-        component={CalendarScreen}
+        component={EnhancedCalendarScreen}
         options={{ 
           title: 'Sessions',
           headerStyle: { backgroundColor: '#6200ea' },
@@ -308,7 +308,7 @@ const TabBarIcon = ({ name, color, size, badgeCount }: {
             lineHeight: 16,
           }}
         >
-          {badgeCount > 99 ? '99+' : badgeCount.toString()}
+          {badgeCount > 99 ? '99+' : String(badgeCount)}
         </Badge>
       )}
     </View>

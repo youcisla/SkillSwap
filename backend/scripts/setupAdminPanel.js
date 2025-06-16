@@ -20,7 +20,11 @@ const connectDB = async () => {
 const createAdminUser = async () => {
   try {
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@admin.admin';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin123!';
+    if (!process.env.ADMIN_PASSWORD) {
+      console.warn('⚠️  ADMIN_PASSWORD environment variable is not set. Please set a secure password for the admin user.');
+      process.exit(1);
+    }
+    const adminPassword = process.env.ADMIN_PASSWORD;
     const adminName = process.env.ADMIN_NAME || 'System Administrator';
 
     // Check if admin user already exists

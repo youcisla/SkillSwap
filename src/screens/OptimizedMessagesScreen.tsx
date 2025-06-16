@@ -304,7 +304,7 @@ const OptimizedMessagesScreen: React.FC<Props> = ({ navigation }) => {
                 </Text>
               </View>
               {unreadCount > 0 && (
-                <Badge style={styles.unreadBadge}>{unreadCount}</Badge>
+                <Badge style={styles.unreadBadge}>{String(unreadCount)}</Badge>
               )}
             </View>
           </Card.Content>
@@ -360,7 +360,7 @@ const OptimizedMessagesScreen: React.FC<Props> = ({ navigation }) => {
                   {isTyping ? `${isTyping} is typing...` : chat.lastMessage?.content || 'No messages yet'}
                 </Text>
                 {unreadCount > 0 && (
-                  <Badge style={styles.unreadBadge} size={20}>{unreadCount}</Badge>
+                  <Badge style={styles.unreadBadge} size={20}>{String(unreadCount)}</Badge>
                 )}
               </View>
               {/* TODO: Add topic/metadata to Chat model

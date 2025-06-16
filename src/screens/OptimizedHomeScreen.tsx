@@ -8,11 +8,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Animated,
     RefreshControl,
-    Text as RNText,
     ScrollView,
     StatusBar,
     StyleSheet,
-    View,
+    View
 } from 'react-native';
 import {
     Card,
@@ -412,7 +411,7 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
                     ))}
                     {teachSkills.length > 5 && (
                       <Chip style={styles.moreChip}>
-                        <RNText>+{teachSkills.length - 5} more</RNText>
+                        +{teachSkills.length - 5} more
                       </Chip>
                     )}
                   </View>

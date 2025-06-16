@@ -48,22 +48,35 @@ class UserService {
 
   async uploadProfileImage(userId: string, imageUri: string): Promise<string> {
     try {
+      console.log('UserService: Uploading profile image for user:', userId);
+      console.log('UserService: Image URI:', imageUri);
+      
       const formData = new FormData();
-      formData.append('image', {
+      const filename = imageUri.split('/').pop() || 'profile.jpg';
+      const fileType = filename.split('.').pop() || 'jpg';
+      
+      formData.append('profileImage', {
         uri: imageUri,
-        type: 'image/jpeg',
-        name: 'profile.jpg',
+        type: `image/${fileType}`,
+        name: filename,
       } as any);
 
-      const response = await ApiService.uploadFile<any>(`/users/${userId}/image`, formData);
+      console.log('UserService: FormData constructed, making request...');
       
-      if (response.success) {
-        return response.data.imageUrl;
+      const response = await ApiService.uploadFile<any>(`/users/${userId}/upload-image`, formData);
+      
+      console.log('UserService: Upload response:', response);
+      
+      if (response.success && response.data && response.data.profileImage) {
+        console.log('UserService: Upload successful, returning URL:', response.data.profileImage);
+        return response.data.profileImage;
       }
       
-      throw new Error(response.error || 'Failed to upload image');
+      const errorMessage = response.error || response.message || 'Failed to upload image';
+      console.error('UserService: Upload failed:', errorMessage);
+      throw new Error(errorMessage);
     } catch (error) {
-      console.error('Upload profile image error:', error);
+      console.error('UserService: Upload profile image error:', error);
       throw error;
     }
   }
