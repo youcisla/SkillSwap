@@ -215,7 +215,9 @@ const enhancedAdminAuth = async (req, res, next) => {
     }
 
     // Log admin actions for security audit
-    console.log(`Admin action: ${req.method} ${req.path} by ${req.user.email} (${req.user.role})`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Admin action: ${req.method} ${req.path} by ${req.user.email} (${req.user.role})`);
+    }
     
     next();
   } catch (error) {

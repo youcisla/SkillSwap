@@ -79,7 +79,9 @@ router.get('/dashboard', adminAuth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Admin dashboard error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Admin dashboard error:', error);
+    }
     res.status(500).json({
       success: false,
       error: 'Failed to load dashboard data'

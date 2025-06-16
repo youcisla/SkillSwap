@@ -24,14 +24,12 @@ const initializeServices = async () => {
       timestamp: new Date().toISOString(),
       platform: 'react-native'
     });
-    console.log('📊 Analytics initialized successfully');
 
     // Initialize notifications
     await notificationService.initialize();
-    console.log('📱 Notifications initialized successfully');
 
   } catch (error) {
-    console.error('❌ Failed to initialize services:', error);
+    // Silent error handling in production
     analyticsService.trackError(error as Error, {
       context: 'app_initialization',
       critical: true
@@ -66,7 +64,7 @@ const AppContent: React.FC = () => {
       level="app" 
       context="main_app"
       onError={(error, errorInfo) => {
-        console.error('🚨 App-level error caught:', error);
+        // Silent error handling - no logging
         analyticsService.trackError(error, {
           context: 'app_level_crash',
           component_stack: errorInfo.componentStack,
@@ -88,7 +86,7 @@ export default function App() {
       level="app" 
       context="root_provider"
       onError={(error, errorInfo) => {
-        console.error('🚨 Root-level error caught:', error);
+        // Silent error handling - no logging
         // Log to external service immediately since analytics might not be available
       }}
     >

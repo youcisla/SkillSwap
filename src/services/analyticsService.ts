@@ -380,34 +380,11 @@ class EnhancedAnalyticsService {
 
     // In a real implementation, send to your analytics service
     // Examples: Firebase Analytics, Mixpanel, Amplitude, etc.
-    
-    console.log('📊 Sending analytics events:', this.queue.length);
-    
-    // Example implementation for a custom analytics API
-    /*
-    const response = await fetch('https://your-analytics-api.com/events', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer YOUR_API_KEY'
-      },
-      body: JSON.stringify({
-        events: this.queue,
-        session: this.currentSession
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Analytics API error: ${response.status}`);
-    }
-    */
   }
 
   private async sendPerformanceMetrics() {
     if (this.performanceQueue.length === 0) return;
 
-    console.log('📈 Sending performance metrics:', this.performanceQueue.length);
-    
     // Send to performance monitoring service
     // Examples: DataDog, New Relic, AppDynamics, etc.
   }
@@ -415,8 +392,6 @@ class EnhancedAnalyticsService {
   private async sendErrorReports() {
     if (this.errorQueue.length === 0) return;
 
-    console.log('🐛 Sending error reports:', this.errorQueue.length);
-    
     // Send to error tracking service
     // Examples: Sentry, Bugsnag, Rollbar, etc.
   }

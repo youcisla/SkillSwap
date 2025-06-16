@@ -16,12 +16,9 @@ class SocketService {
 
   async connect(userId: string, token?: string) {
     if (this.socket?.connected && this.currentUserId === userId) {
-      console.log('Socket already connected for user:', userId);
       return;
     }
 
-    console.log('🔌 Connecting to socket server:', this.baseUrl);
-    
     // Get stored token if not provided
     if (!token) {
       token = await authService.getStoredToken();
@@ -52,40 +49,33 @@ class SocketService {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('✅ Socket connected:', this.socket?.id);
       this.isConnected = true;
       this.reconnectAttempts = 0;
       
       // Authenticate with token if provided
       if (token && !this.isAuthenticating) {
         this.isAuthenticating = true;
-        console.log('🔐 Authenticating socket with token...');
         this.socket?.emit('authenticate', token);
       }
       
       // Join user's personal room for notifications
       this.socket?.emit('join-user-room', userId);
-      console.log(`👤 Joined user room: user-${userId}`);
     });
 
     this.socket.on('authenticated', (data) => {
-      console.log('✅ Socket authenticated successfully:', data);
       this.isAuthenticating = false;
     });
 
     this.socket.on('authentication-failed', () => {
-      console.error('❌ Socket authentication failed');
       this.isAuthenticating = false;
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('❌ Socket connection error:', error);
       this.isConnected = false;
       this.isAuthenticating = false;
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('🔌 Socket disconnected:', reason);
       this.isConnected = false;
       this.isAuthenticating = false;
       
@@ -97,8 +87,6 @@ class SocketService {
 
     // Real-time message events
     this.socket.on('new-message', (messageData) => {
-      console.log('📨 New message received:', messageData);
-      
       // Transform the message data to match our Message interface
       const transformedMessage = {
         id: messageData.id || messageData._id,
@@ -134,8 +122,6 @@ class SocketService {
 
     // Real-time match events
     this.socket.on('new-match', (matchData) => {
-      console.log('💖 New match received:', matchData);
-      
       // Show notification
       notificationService.scheduleLocalNotification(
         'New Match!',
@@ -150,8 +136,6 @@ class SocketService {
 
     // Real-time follow events
     this.socket.on('new-follower', (followerData) => {
-      console.log('👤 New follower:', followerData);
-      
       // Show notification
       notificationService.scheduleLocalNotification(
         'New Follower',
@@ -165,8 +149,6 @@ class SocketService {
 
     // Real-time session events
     this.socket.on('session-update', (sessionData) => {
-      console.log('📅 Session update:', sessionData);
-      
       // Show notification for session status changes
       notificationService.scheduleLocalNotification(
         'Session Update',
@@ -182,7 +164,6 @@ class SocketService {
   private attemptReconnect(userId: string) {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      console.log(`🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
       
       setTimeout(() => {
         if (this.currentUserId && this.currentToken) {
@@ -198,14 +179,12 @@ class SocketService {
 
   joinChat(chatId: string) {
     if (this.socket?.connected) {
-      console.log('🏠 Joining chat:', chatId);
       this.socket.emit('join-chat', chatId);
     }
   }
 
   leaveChat(chatId: string) {
     if (this.socket?.connected) {
-      console.log('🚪 Leaving chat:', chatId);
       this.socket.emit('leave-chat', chatId);
     }
   }
@@ -218,7 +197,6 @@ class SocketService {
     timestamp: string;
   }) {
     if (this.socket?.connected) {
-      console.log('📤 Emitting message via socket:', messageData);
       // Use the correct event name that matches the backend
       this.socket.emit('send-message', {
         chatId: messageData.chatId,
@@ -232,7 +210,6 @@ class SocketService {
 
   disconnect() {
     if (this.socket) {
-      console.log('🔌 Disconnecting socket...');
       this.socket.disconnect();
       this.socket = null;
       this.isConnected = false;

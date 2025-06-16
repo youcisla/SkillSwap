@@ -32,8 +32,8 @@ export const useErrorRecovery = <T>() => {
 
     while (attempt <= maxRetries) {
       try {
-        setIsRetrying(attempt > 0);
-        setRetryCount(attempt);
+        setRetryCount(0);
+        setLastError(null);
         
         const result = await operation();
         
@@ -159,20 +159,18 @@ export const categorizeError = (error: any) => {
 
 // Error reporting utility
 export const reportError = (error: Error, context?: any) => {
-  const errorReport = {
-    message: error.message,
-    stack: error.stack,
-    timestamp: new Date().toISOString(),
-    context,
-    userAgent: navigator.userAgent,
-    url: window.location?.href,
-  };
-  
-  // Log locally
-  console.error('Error Report:', errorReport);
-  
-  // In production, send to error tracking service
-  if (!__DEV__) {
+  // Only report in development
+  if (__DEV__) {
+    const errorReport = {
+      message: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+      context,
+      userAgent: navigator.userAgent,
+      url: window.location?.href,
+    };
+    
+    // In production, send to error tracking service
     // Example: Sentry.captureException(error, { extra: errorReport });
   }
 };

@@ -30,7 +30,6 @@ class SkillService {
         throw new Error('User ID is required');
       }
 
-      console.log('📤 Adding skill via service:', { userId, skillData, type });
       const payload = { 
         ...skillData, 
         userId,
@@ -41,23 +40,17 @@ class SkillService {
         description: skillData.description || ''
       };
       
-      console.log('📤 Skill payload:', payload);
-      
       const response = await ApiService.post<ApiResponse<Skill>>(
         `/skills/${type}`,
         payload
       );
       
-      console.log('📥 Skill service response:', response);
-      
       if (response.success && response.data) {
-        console.log('✅ Skill added via service:', response.data);
         return response.data;
       }
       
       throw new Error(response.error || 'Failed to add skill');
     } catch (error) {
-      console.error('Add skill error:', error);
       throw error;
     }
   }

@@ -64,12 +64,8 @@ export const searchUsers = createAsyncThunk<
   { rejectValue: string }
 >('user/search', async ({ query, filters }, { rejectWithValue }) => {
   try {
-    console.log('UserSlice: Searching users with:', { query, filters });
-    const result = await userService.searchUsers(query, filters);
-    console.log('UserSlice: Search successful, found users:', result.length);
-    return result;
+    return await userService.searchUsers(query, filters);
   } catch (error: any) {
-    console.error('UserSlice: Search failed:', error.message);
     return rejectWithValue(error.message || 'Search failed');
   }
 });

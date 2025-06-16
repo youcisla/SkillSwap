@@ -1,17 +1,18 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
-    Animated,
-    Pressable,
-    StyleSheet,
-    TextStyle,
-    View,
-    ViewStyle
+  Animated,
+  Pressable,
+  StyleSheet,
+  TextStyle,
+  View,
+  ViewStyle
 } from 'react-native';
 import {
-    ActivityIndicator,
-    Text,
-    useTheme,
+  ActivityIndicator,
+  IconButton,
+  Text,
+  useTheme,
 } from 'react-native-paper';
 import { animations, borderRadius, colors, shadows, spacing } from '../../theme';
 
@@ -26,7 +27,7 @@ interface EnhancedButtonProps {
   disabled?: boolean;
   loading?: boolean;
   fullWidth?: boolean;
-  icon?: React.ReactNode;
+  icon?: React.ReactNode | string;
   iconPosition?: 'left' | 'right';
   style?: ViewStyle;
   textStyle?: TextStyle;
@@ -193,6 +194,31 @@ const EnhancedButton: React.FC<EnhancedButtonProps> = ({
     };
   };
 
+  const getIconColor = () => {
+    switch (variant) {
+      case 'outline':
+      case 'ghost':
+        return theme.colors.primary;
+      default:
+        return 'white';
+    }
+  };
+
+  const renderIcon = (iconProp: React.ReactNode | string) => {
+    if (typeof iconProp === 'string') {
+      const iconSize = size === 'small' ? 16 : size === 'medium' ? 20 : 24;
+      return (
+        <IconButton 
+          icon={iconProp} 
+          size={iconSize} 
+          iconColor={getIconColor()}
+          style={{ margin: 0 }}
+        />
+      );
+    }
+    return iconProp;
+  };
+
   const buttonContent = (
     <View style={styles.content}>
       {loading ? (
@@ -203,11 +229,15 @@ const EnhancedButton: React.FC<EnhancedButtonProps> = ({
       ) : (
         <>
           {icon && iconPosition === 'left' && (
-            <View style={[styles.icon, { marginRight: spacing.sm }]}>{icon}</View>
+            <View style={[styles.icon, { marginRight: spacing.sm }]}>
+              {renderIcon(icon)}
+            </View>
           )}
           <Text style={[getTextStyles(), textStyle]}>{title}</Text>
           {icon && iconPosition === 'right' && (
-            <View style={[styles.icon, { marginLeft: spacing.sm }]}>{icon}</View>
+            <View style={[styles.icon, { marginLeft: spacing.sm }]}>
+              {renderIcon(icon)}
+            </View>
           )}
         </>
       )}

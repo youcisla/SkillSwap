@@ -1,21 +1,21 @@
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    View,
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    Button,
-    Card,
-    Chip,
-    FAB,
-    Paragraph,
-    Searchbar,
-    Text,
-    Title
+  Button,
+  Card,
+  Chip,
+  FAB,
+  Paragraph,
+  Searchbar,
+  Text,
+  Title
 } from 'react-native-paper';
 import SafeAvatar from '../components/SafeAvatar';
 import { BulkActionsBar, SelectableItem, SelectionHeader } from '../components/ui/MultiSelection';
@@ -25,7 +25,6 @@ import { useAppDispatch, useAppSelector } from '../store';
 import { fetchMatches, removeMatch } from '../store/slices/matchSlice';
 import { addUserToCache } from '../store/slices/userSlice';
 import { Match, MatchesStackParamList } from '../types';
-import ProfileDebugger from '../utils/profileDebugger';
 
 type MatchesScreenNavigationProp = StackNavigationProp<MatchesStackParamList, 'MatchesMain'>;
 
@@ -62,35 +61,32 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
       const initializeSocket = () => {
         try {
           if (!socketService.isSocketConnected()) {
-            console.log('🔌 Initializing socket connection for matches...');
             socketService.connect(user.id);
           }
           
           // Setup match-specific event listeners
           const handleNewMatch = (matchData: any) => {
-            console.log('💖 New match received in MatchesScreen:', matchData);
             // Refresh matches when a new match is received
             loadMatches();
           };
 
           const handleSocketReconnect = () => {
-            console.log('✅ Socket reconnected in MatchesScreen');
             setSocketError(null);
             setSocketConnected(true);
           };
 
           const handleSocketDisconnect = (reason: string) => {
-            console.log('🔌 Socket disconnected in MatchesScreen:', reason);
             setSocketConnected(false);
-            if (reason === 'io server disconnect') {
+            if (__DEV__ && reason === 'io server disconnect') {
               setSocketError('Lost connection to server. Trying to reconnect...');
             }
           };
 
           const handleSocketConnectError = (error: any) => {
-            console.error('❌ Socket connection error in MatchesScreen:', error);
             setSocketConnected(false);
-            setSocketError('WebSocket connection failed. Some features may not work properly.');
+            if (__DEV__) {
+              setSocketError('WebSocket connection failed. Some features may not work properly.');
+            }
           };
 
           // Check initial connection status
@@ -110,8 +106,9 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
             socketService.offConnect(handleSocketReconnect);
           };
         } catch (error) {
-          console.error('❌ Failed to initialize socket for matches:', error);
-          setSocketError('Failed to initialize real-time features.');
+          if (__DEV__) {
+            setSocketError('Failed to initialize real-time features.');
+          }
         }
       };
 
@@ -132,28 +129,15 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     const user1Id = typeof user1Data === 'object' ? user1Data.id || user1Data._id : user1Data;
     const user2Id = typeof user2Data === 'object' ? user2Data.id || user2Data._id : user2Data;
     
-    console.log('MatchesScreen: getMatchedUser called', {
-      matchId: match.id,
-      currentUserId: user?.id,
-      user1Id,
-      user2Id,
-      user1DataType: typeof user1Data,
-      user2DataType: typeof user2Data,
-      user1Data: typeof user1Data === 'object' ? user1Data : 'string',
-      user2Data: typeof user2Data === 'object' ? user2Data : 'string'
-    });
-    
     // Determine which user is the "other" user
     if (String(user1Id) === String(user?.id)) {
       // Current user is user1, so return user2
       if (typeof user2Data === 'object') {
-        console.log('MatchesScreen: Found populated user2:', user2Data.name);
         return user2Data;
       }
     } else if (String(user2Id) === String(user?.id)) {
       // Current user is user2, so return user1
       if (typeof user1Data === 'object') {
-        console.log('MatchesScreen: Found populated user1:', user1Data.name);
         return user1Data;
       }
     }
@@ -161,19 +145,6 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     // Fallback to finding in users array using the actual user ID
     const otherUserId = String(user1Id) === String(user?.id) ? user2Id : user1Id;
     const foundUser = users.find(u => String(u.id) === String(otherUserId));
-    console.log('MatchesScreen: Fallback search result:', foundUser ? foundUser.name : 'NOT FOUND', 'for userId:', otherUserId);
-    console.log('MatchesScreen: Available users in store:', users.map(u => ({ id: u.id, name: u.name })));
-    
-    if (!foundUser) {
-      console.warn('MatchesScreen: No matched user found for match:', {
-        matchId: match.id,
-        lookingForUserId: otherUserId,
-        currentUserId: user?.id,
-        availableUsers: users.length,
-        user1Data: typeof user1Data === 'object' ? { id: user1Data.id || user1Data._id, name: user1Data.name } : user1Data,
-        user2Data: typeof user2Data === 'object' ? { id: user2Data.id || user2Data._id, name: user2Data.name } : user2Data
-      });
-    }
     
     return foundUser;
   };
@@ -188,12 +159,19 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     
     // Ensure we always return an array
     if (!Array.isArray(skills)) {
-      console.warn('MatchesScreen: getMatchedSkills - skills is not an array:', skills);
       return [];
     }
     
-    // Filter out any non-string values to prevent rendering errors
-    return skills.filter(skill => typeof skill === 'string' && skill.length > 0);
+    // Handle both string skills and skill objects with skillName property
+    return skills.map(skill => {
+      if (typeof skill === 'string') {
+        return skill;
+      } else if (skill && typeof skill === 'object' && (skill as any).skillName) {
+        return (skill as any).skillName;
+      } else {
+        return '';
+      }
+    }).filter(skillName => skillName && skillName.length > 0);
   };
 
   const filteredMatches = matches.filter(match => {
@@ -202,59 +180,19 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     const matchedUser = getMatchedUser(match);
     const matchedSkills = getMatchedSkills(match);
     
-    console.log('🔍 Filtering match:', {
-      matchId: match.id,
-      searchQuery,
-      matchedUser: matchedUser ? { id: matchedUser.id, name: matchedUser.name } : null,
-      matchedSkills,
-      nameMatch: matchedUser?.name.toLowerCase().includes(searchQuery.toLowerCase()),
-      skillsMatch: matchedSkills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()))
-    });
-    
-    return (
-      matchedUser?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      matchedSkills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()))
+    const nameMatch = matchedUser?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false;
+    const skillsMatch = matchedSkills.some(skill => 
+      String(skill).toLowerCase().includes(searchQuery.toLowerCase())
     );
-  });
-
-  // Enhanced debug logging
-  console.log('MatchesScreen Debug:', {
-    totalMatches: matches.length,
-    filteredMatches: filteredMatches.length,
-    searchQuery,
-    user: user?.id,
-    loading,
-    matchesRaw: matches.map(m => ({
-      id: m.id,
-      user1Id: typeof m.user1Id === 'object' ? (m.user1Id as any)?.id || (m.user1Id as any)?._id : m.user1Id,
-      user2Id: typeof m.user2Id === 'object' ? (m.user2Id as any)?.id || (m.user2Id as any)?._id : m.user2Id,
-      currentUserId: user?.id
-    }))
+    
+    return nameMatch || skillsMatch;
   });
 
   const loadMatches = async () => {
     if (!user?.id) return;
     
     try {
-      console.log('🔍 Loading matches for user:', user.id);
       const fetchedMatches = await dispatch(fetchMatches(user.id)).unwrap();
-      
-      console.log('✅ Successfully loaded', fetchedMatches.length, 'matches');
-      console.log('📊 Raw matches data:', JSON.stringify(fetchedMatches, null, 2));
-      
-      // Enhanced debugging - check if matches have proper structure
-      fetchedMatches.forEach((match, index) => {
-        console.log(`📊 Match ${index}:`, {
-          id: match.id,
-          user1Id: match.user1Id,
-          user2Id: match.user2Id,
-          user1IdType: typeof match.user1Id,
-          user2IdType: typeof match.user2Id,
-          user1Skills: match.user1Skills,
-          user2Skills: match.user2Skills,
-          compatibilityScore: match.compatibilityScore
-        });
-      });
       
       // Cache all matched users in the user store for easy access
       fetchedMatches.forEach(match => {
@@ -262,23 +200,19 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
         
         // Add populated user data to cache if available
         if (matchData.user1Id && typeof matchData.user1Id === 'object') {
-          console.log('📝 Caching user1:', matchData.user1Id.name);
           dispatch(addUserToCache(matchData.user1Id));
         }
         if (matchData.user2Id && typeof matchData.user2Id === 'object') {
-          console.log('📝 Caching user2:', matchData.user2Id.name);
           dispatch(addUserToCache(matchData.user2Id));
         }
       });
-
-      console.log('✅ Successfully loaded', fetchedMatches.length, 'matches');
     } catch (error) {
-      console.error('❌ Failed to load matches:', error);
-      
       // Check if it's a network/socket related error
       if (error instanceof Error) {
         if (error.message.includes('socket') || error.message.includes('websocket') || error.message.includes('connection')) {
-          setSocketError('Failed to load matches due to connection issues. Please try again.');
+          if (__DEV__) {
+            setSocketError('Failed to load matches due to connection issues. Please try again.');
+          }
         } else {
           Alert.alert(
             'Error Loading Matches',
@@ -302,13 +236,12 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
       
       // Ensure socket connection is active
       if (user?.id && !socketService.isSocketConnected()) {
-        console.log('🔄 Re-establishing socket connection during refresh...');
         socketService.connect(user.id);
       }
       
       await loadMatches();
     } catch (error) {
-      console.error('❌ Refresh failed:', error);
+      // Handle refresh errors silently or show minimal feedback
     } finally {
       setRefreshing(false);
     }
@@ -335,7 +268,6 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
               matchSelection.deselectAll();
               setIsSelectionMode(false);
             } catch (error) {
-              console.error('Failed to remove matches:', error);
               Alert.alert('Error', 'Failed to remove some matches. Please try again.');
             }
           },
@@ -419,20 +351,10 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
   const handleMatchPress = (item: Match) => {
     const matchedUser = getMatchedUser(item);
     if (!matchedUser) {
-      console.warn('MatchesScreen: No matched user found for match:', item.id);
       return;
     }
-
-    console.log('MatchesScreen: Match pressed:', {
-      matchId: item.id,
-      matchedUserId: matchedUser.id || matchedUser._id,
-      matchedUserName: matchedUser.name,
-      currentUserId: user?.id
-    });
     
     const userId = String(matchedUser.id || matchedUser._id);
-    ProfileDebugger.logMatchClick(item.id, userId, matchedUser);
-    ProfileDebugger.logUserStore(users, user);
     
     navigation.navigate('MatchUserProfile', { userId });
   };
@@ -442,21 +364,11 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     const matchedSkills = getMatchedSkills(item);
 
     if (!matchedUser) {
-      console.warn('MatchesScreen: No matched user found for match:', item.id);
-      console.warn('MatchesScreen: Match data:', JSON.stringify(item, null, 2));
-      
-      // Return a debug card instead of null to help identify the issue
+      // Return empty card for missing user data
       return (
-        <Card style={[styles.matchCard, { backgroundColor: '#ffebee' }]}>
+        <Card style={[styles.matchCard, { backgroundColor: '#f5f5f5' }]}>
           <Card.Content>
-            <Title style={{ color: '#d32f2f' }}>Debug: Match Data Issue</Title>
-            <Text style={{ color: '#d32f2f' }}>Match ID: {item.id}</Text>
-            <Text style={{ color: '#d32f2f' }}>User1: {JSON.stringify((item as any).user1Id)}</Text>
-            <Text style={{ color: '#d32f2f' }}>User2: {JSON.stringify((item as any).user2Id)}</Text>
-            <Text style={{ color: '#d32f2f' }}>Current User: {user?.id}</Text>
-            <Button mode="outlined" onPress={() => console.log('Full match data:', item)}>
-              Log Full Match Data
-            </Button>
+            <Text>Match data unavailable</Text>
           </Card.Content>
         </Card>
       );
@@ -485,7 +397,7 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
                     style={[styles.compatibilityChip, { backgroundColor: getCompatibilityColor(item.compatibilityScore || 0) }]}
                     textStyle={styles.compatibilityText}
                   >
-                    {item.compatibilityScore || 0}%
+                    {`${item.compatibilityScore || 0}%`}
                   </Chip>
                 </View>
               </View>
@@ -495,18 +407,23 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.skillsSection}>
             <Text style={styles.skillsTitle}>Shared Skills</Text>
             <View style={styles.skillsContainer}>
-              {safeMatchedSkills.slice(0, 3).map((skill, index) => {
-                const matchId = (item as any).id || (item as any)._id || `${(item as any).user1Id}-${(item as any).user2Id}`;
-                return (
-                  <Chip key={`skill-${matchId}-${skill}-${index}`} style={styles.skillChip}>
-                    {String(skill)}
-                  </Chip>
-                );
-              })}
+              {safeMatchedSkills
+                .slice(0, 3)
+                .filter(skill => String(skill || '').trim().length > 0)
+                .map((skill, index) => {
+                  const matchId = (item as any).id || (item as any)._id || `${(item as any).user1Id}-${(item as any).user2Id}`;
+                  const skillName = String(skill || '').trim();
+                  
+                  return (
+                    <Chip key={`skill-${matchId}-${skillName}-${index}`} style={styles.skillChip}>
+                      {skillName}
+                    </Chip>
+                  );
+                })}
               {safeMatchedSkills.length > 3 && (
-                <Text key={`more-skills-${(item as any).id || (item as any)._id || 'fallback'}`} style={styles.moreSkills}>
-                  +{safeMatchedSkills.length - 3} more
-                </Text>
+                <Chip key={`more-skills-${(item as any).id || (item as any)._id || 'fallback'}`} style={styles.moreSkillsChip}>
+                  {`+${Math.max(0, safeMatchedSkills.length - 3)} more`}
+                </Chip>
               )}
             </View>
           </View>
@@ -589,8 +506,8 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.searchbar}
         />
         
-        {/* WebSocket Connection Status */}
-        {socketError && (
+        {/* WebSocket Connection Status - Development Only */}
+        {__DEV__ && socketError && (
           <Card style={[styles.errorCard, { marginTop: 8 }]}>
             <Card.Content style={styles.errorContent}>
               <Text style={styles.errorText}>⚠️ {socketError}</Text>
@@ -770,6 +687,10 @@ const styles = StyleSheet.create({
     margin: 2,
     backgroundColor: '#e3f2fd',
   },
+  moreSkillsChip: {
+    margin: 2,
+    backgroundColor: '#f5f5f5',
+  },
   moreSkills: {
     fontSize: 12,
     color: '#666',
@@ -810,20 +731,19 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   errorCard: {
+    marginHorizontal: 16,
     backgroundColor: '#ffebee',
     borderLeftWidth: 4,
     borderLeftColor: '#f44336',
   },
   errorContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   errorText: {
     color: '#d32f2f',
     fontSize: 14,
-    flex: 1,
+    fontWeight: '500',
   },
 });
 

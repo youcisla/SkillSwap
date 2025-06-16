@@ -286,10 +286,9 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
                       {skill?.name || 'Unknown Skill'}
                     </Chip>
                   ))}
-                  {userProfile.skillsToTeach.length > 2 && (
-                    <Chip style={styles.moreChip} compact>
-                      <Text>+{userProfile.skillsToTeach.length - 2}</Text>
-                    </Chip>
+                  {userProfile.skillsToTeach.length > 2 && (                  <Chip style={styles.moreChip} compact>
+                    <Text>+{userProfile.skillsToTeach.length - 2}</Text>
+                  </Chip>
                   )}
                 </View>
               </View>
@@ -371,10 +370,9 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
                     {skill?.name || 'Unknown Skill'}
                   </Chip>
                 ))}
-                {userProfile.skillsToTeach.length > 3 && (
-                  <Chip style={styles.moreChip} compact>
-                    <Text>+{userProfile.skillsToTeach.length - 3}</Text>
-                  </Chip>
+                {userProfile.skillsToTeach.length > 3 && (                <Chip style={styles.moreChip} compact>
+                  <Text>+{userProfile.skillsToTeach.length - 3}</Text>
+                </Chip>
                 )}
               </View>
             </View>
@@ -397,10 +395,9 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
                     {skill?.name || 'Unknown Skill'}
                   </Chip>
                 ))}
-                {userProfile.skillsToLearn.length > 3 && (
-                  <Chip style={styles.moreChip} compact>
-                    <Text>+{userProfile.skillsToLearn.length - 3}</Text>
-                  </Chip>
+                {userProfile.skillsToLearn.length > 3 && (                <Chip style={styles.moreChip} compact>
+                  <Text>+{userProfile.skillsToLearn.length - 3}</Text>
+                </Chip>
                 )}
               </View>
             </View>

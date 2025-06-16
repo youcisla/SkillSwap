@@ -91,9 +91,7 @@ const skillSlice = createSlice({
       })
       .addCase(fetchUserSkills.fulfilled, (state, action) => {
         state.loading = false;
-        console.log('✅ fetchUserSkills.fulfilled - received data:', action.payload);
         state.skills = [...action.payload.teach, ...action.payload.learn];
-        console.log('✅ Updated skills state:', state.skills.length, 'skills');
       })
       .addCase(fetchUserSkills.rejected, (state, action) => {
         state.loading = false;
@@ -106,9 +104,6 @@ const skillSlice = createSlice({
       })
       .addCase(addSkill.fulfilled, (state, action) => {
         state.loading = false;
-        console.log('✅ addSkill.fulfilled - added skill:', action.payload);
-        console.log('✅ Skill type:', action.payload.type);
-        console.log('✅ Skill id:', action.payload.id || (action.payload as any)._id);
         
         // Ensure we have an id field
         const skillWithId = {
@@ -117,8 +112,6 @@ const skillSlice = createSlice({
         };
         
         state.skills.push(skillWithId);
-        console.log('✅ Skills state after adding:', state.skills.length, 'skills');
-        console.log('✅ All skills with types:', state.skills.map(s => ({ name: s.name, type: s.type, id: s.id })));
       })
       .addCase(addSkill.rejected, (state, action) => {
         state.loading = false;

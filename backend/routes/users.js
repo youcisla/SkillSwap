@@ -422,7 +422,7 @@ router.delete('/:id',
         // Ensure the imagePath is within the uploads directory to prevent path traversal
         if (imagePath.startsWith(uploadsDir)) {
           fs.unlink(imagePath, (err) => {
-            if (err) {
+            if (err && process.env.NODE_ENV === 'development') {
               console.error('Error deleting profile image:', err);
             }
           });
@@ -438,7 +438,9 @@ router.delete('/:id',
       });
 
     } catch (error) {
-      console.error('Error deleting user:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error deleting user:', error);
+      }
       res.status(500).json({ 
         success: false, 
         message: 'Error deleting user',
@@ -490,7 +492,9 @@ router.get('/stats/overview',
       });
 
     } catch (error) {
-      console.error('Error fetching user stats:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching user stats:', error);
+      }
       res.status(500).json({ 
         success: false, 
         message: 'Error fetching user statistics',

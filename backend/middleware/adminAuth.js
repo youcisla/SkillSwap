@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Admin authentication middleware
 const adminAuth = async (req, res, next) => {
@@ -37,7 +37,9 @@ const adminAuth = async (req, res, next) => {
     req.userPermissions = user.permissions;
     next();
   } catch (error) {
-    console.error('Admin auth middleware error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Admin auth middleware error:', error);
+    }
     res.status(401).json({
       success: false,
       error: 'Invalid token'
@@ -65,7 +67,9 @@ const checkPermission = (permission) => {
       
       next();
     } catch (error) {
-      console.error('Permission check error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Permission check error:', error);
+      }
       res.status(500).json({
         success: false,
         error: 'Permission check failed'

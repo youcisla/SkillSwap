@@ -25,7 +25,7 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // Silent error handling - no console logging
     this.props.onError?.(error, errorInfo);
     
     // Log to crash reporting service in production
@@ -54,15 +54,10 @@ class ErrorBoundary extends Component<Props, State> {
                 color="#f44336" 
                 style={styles.icon}
               />
-              <Title style={styles.title}>Oops! Something went wrong</Title>
+              <Title style={styles.title}>Something went wrong</Title>
               <Paragraph style={styles.message}>
-                We're sorry, but something unexpected happened. Please try again.
+                Please try again or restart the app.
               </Paragraph>
-              {__DEV__ && this.state.error && (
-                <Paragraph style={styles.errorDetails}>
-                  {this.state.error.message}
-                </Paragraph>
-              )}
               <Button 
                 mode="contained" 
                 onPress={this.handleRetry}
@@ -106,13 +101,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
     color: '#666',
-  },
-  errorDetails: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 16,
-    fontFamily: 'monospace',
   },
   retryButton: {
     marginTop: 8,

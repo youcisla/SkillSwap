@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { Dimensions, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Chip, Paragraph, Title } from 'react-native-paper';
 import Animated, {
@@ -8,6 +8,7 @@ import Animated, {
     ZoomIn
 } from 'react-native-reanimated';
 import { analyticsService } from '../../services/analyticsService';
+import { logger } from '../../utils/logger';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -41,7 +42,7 @@ class EnhancedErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('EnhancedErrorBoundary caught an error:', error, errorInfo);
+    logger.error('EnhancedErrorBoundary caught an error', error, 'ErrorBoundary');
     
     this.setState({ errorInfo });
     

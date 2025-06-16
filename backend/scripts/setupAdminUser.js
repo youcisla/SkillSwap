@@ -14,7 +14,7 @@ async function setupAdminUser() {
     console.log('✅ Connected to MongoDB');
     
     const adminEmail = 'admin@admin.admin';
-    const adminPassword = 'Admin123!';
+    const adminPassword = process.env.ADMIN_PASSWORD;
     
     // Check if admin user already exists
     const existingAdmin = await User.findOne({ email: adminEmail });

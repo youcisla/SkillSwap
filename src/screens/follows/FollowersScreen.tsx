@@ -118,7 +118,7 @@ const FollowersScreen: React.FC<Props> = ({ navigation, route }) => {
               ))}
               {follower.skillsToTeach.length > 3 && (
                 <Chip style={styles.moreChip} compact>
-                  <Text>+{follower.skillsToTeach.length - 3}</Text>
+                  +{follower.skillsToTeach.length - 3}
                 </Chip>
               )}
             </View>

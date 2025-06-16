@@ -21,8 +21,7 @@ const createAdminUser = async () => {
   try {
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@admin.admin';
     if (!process.env.ADMIN_PASSWORD) {
-      console.warn('⚠️  ADMIN_PASSWORD environment variable is not set. Please set a secure password for the admin user.');
-      process.exit(1);
+      throw new Error('ADMIN_PASSWORD environment variable is not set. Please set it before running the setup.');
     }
     const adminPassword = process.env.ADMIN_PASSWORD;
     const adminName = process.env.ADMIN_NAME || 'System Administrator';
@@ -55,7 +54,8 @@ const createAdminUser = async () => {
     }
 
     // Create new admin user
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    const saltRounds = process.env.BCRYPT_SALT_ROUNDS ? parseInt(process.env.BCRYPT_SALT_ROUNDS, 10) : 10;
+    const hashedPassword = await bcrypt.hash(adminPassword, saltRounds);
     
     const adminUser = new User({
       name: adminName,

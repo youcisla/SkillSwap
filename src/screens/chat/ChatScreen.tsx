@@ -1,16 +1,16 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    View,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    Card,
-    Text,
-    TextInput
+  Card,
+  Text,
+  TextInput
 } from 'react-native-paper';
 import SafeAvatar from '../../components/SafeAvatar';
 import { socketService } from '../../services/socketService';
@@ -18,13 +18,6 @@ import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchMessages, findOrCreateChat, markAsRead, sendMessage } from '../../store/slices/messageSlice';
 import { fetchUserProfile } from '../../store/slices/userSlice';
 import { Message } from '../../types';
-
-// Debug utility - remove in production
-const debugLog = (message: string, data?: any) => {
-  if (__DEV__) {
-    console.log(`🐛 ChatScreen: ${message}`, data || '');
-  }
-};
 
 // Generic params interface for ChatScreen
 interface ChatParams {
@@ -49,53 +42,37 @@ const ChatScreen: React.FC = () => {
   const otherUser = users.find(u => u.id === otherUserId);
   const chatMessages = messages[actualChatId] || [];
 
-  // Debug logging
-  useEffect(() => {
-    debugLog('Component mounted/updated', {
-      chatId,
-      actualChatId,
-      otherUserId,
-      userId: user?.id,
-      messagesCount: chatMessages.length,
-      otherUserFound: !!otherUser
-    });
-  }, [chatId, actualChatId, otherUserId, user?.id, chatMessages.length, otherUser]);
-
   useEffect(() => {
     const initializeChat = async () => {
       if (user?.id && otherUserId) {
         try {
-          debugLog('Initializing chat', { userId: user.id, otherUserId });
-          
           // Validate that both IDs are strings and not empty
           if (typeof user.id !== 'string' || typeof otherUserId !== 'string' || !user.id.trim() || !otherUserId.trim()) {
             throw new Error('Invalid user IDs provided');
           }
           
           const participantsArray = [user.id, otherUserId];
-          debugLog('Participants array to send:', participantsArray);
           
           // First, ensure the chat exists by finding or creating it
           const chatResult = await dispatch(findOrCreateChat(participantsArray)).unwrap();
-          debugLog('Chat found/created', chatResult);
           
           // Use the actual chat ID returned from the backend
           const resultChatId = chatResult.id || chatId;
           setActualChatId(resultChatId);
-          debugLog('Using chat ID', resultChatId);
           
           // Join the chat room for real-time updates
           socketService.joinChat(resultChatId);
           
           // Then fetch messages for the chat
-          debugLog('Fetching messages for chat', resultChatId);
           await dispatch(fetchMessages(resultChatId));
           
           // Fetch the other user's profile
           dispatch(fetchUserProfile(otherUserId));
         } catch (error) {
-          console.error('Failed to initialize chat:', error);
-          debugLog('Chat initialization error', error);
+          // Log error only in development
+          if (__DEV__) {
+            console.error('Failed to initialize chat:', error);
+          }
         }
       }
     };
@@ -130,13 +107,6 @@ const ChatScreen: React.FC = () => {
     if (!messageText.trim() || !user?.id) return;
 
     try {
-      debugLog('Sending message', { 
-        actualChatId, 
-        content: messageText.trim(),
-        sender: user.id,
-        receiver: otherUserId 
-      });
-      
       await dispatch(sendMessage({
         senderId: user.id,
         receiverId: otherUserId,
@@ -154,10 +124,10 @@ const ChatScreen: React.FC = () => {
       });
       
       setMessageText('');
-      debugLog('Message sent successfully');
     } catch (error) {
-      console.error('Failed to send message:', error);
-      debugLog('Send message error', error);
+      if (__DEV__) {
+        console.error('Failed to send message:', error);
+      }
     }
   };
 

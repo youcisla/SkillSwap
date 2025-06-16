@@ -121,19 +121,18 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
       try {
         await dispatch(findDynamicMatches({ userId: user.id }));
       } catch (dynamicError) {
-        console.warn('Dynamic matches failed, continuing without them:', dynamicError);
+        // Dynamic matches failed, continuing without them
       }
 
       // Sync offline data
       try {
         await syncData();
       } catch (syncError) {
-        console.warn('Data sync failed:', syncError);
+        // Data sync failed
       }
       
       setHasDataLoaded(true);
     } catch (error) {
-      console.error('Failed to load user data:', error);
       // Trigger error recovery if available
       if (triggerHaptic) {
         triggerHaptic('error');
@@ -498,23 +497,6 @@ const HomeScreen: React.FC<Props> = React.memo(({ navigation }) => {
                 style={styles.actionCard}
               />
             </View>
-
-            {/* Debug Section - Development only */}
-            {__DEV__ && (
-              <Card style={styles.sectionCard}>
-                <Card.Content style={styles.sectionContent}>
-                  <Title style={styles.sectionTitle}>Debug Info</Title>
-                  <Text>User ID: {user?.id}</Text>
-                  <Text>Skills: {skills.length}</Text>
-                  <Text>Teaching: {teachSkills.length}</Text>
-                  <Text>Learning: {learnSkills.length}</Text>
-                  <Text>Matches: {matches.length}</Text>
-                  <Text>Dynamic Matches: {dynamicMatches.length}</Text>
-                  <Text>Loading States: User={userLoading ? 'Y' : 'N'}, Skills={skillsLoading ? 'Y' : 'N'}, Matches={matchesLoading ? 'Y' : 'N'}</Text>
-                  <Text>Last Sync: {lastSyncTime ? new Date(lastSyncTime).toLocaleTimeString() : 'Never'}</Text>
-                </Card.Content>
-              </Card>
-            )}
           </ScrollView>
 
           {/* Enhanced FAB with animation */}

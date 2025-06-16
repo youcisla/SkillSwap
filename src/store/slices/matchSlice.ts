@@ -56,14 +56,10 @@ export const findDynamicMatches = createAsyncThunk(
     };
   }, { rejectWithValue }) => {
     try {
-      console.log('🔍 Finding dynamic matches for user:', params.userId);
       const dynamicMatches = await matchService.findDynamicMatches(params.userId, params.filters);
-      console.log('✅ Found dynamic matches:', dynamicMatches.length);
       return dynamicMatches;
     } catch (error: any) {
-      console.error('❌ Dynamic matching failed:', error);
       // Return empty array instead of rejecting to prevent blocking UI
-      console.warn('Returning empty dynamic matches due to error');
       return [];
     }
   }

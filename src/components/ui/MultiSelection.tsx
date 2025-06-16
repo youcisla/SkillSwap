@@ -163,7 +163,7 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
   return (
     <View style={[styles.bulkActionsBar, { backgroundColor: theme.colors.surface }, style]}>
       <Text style={[styles.bulkActionsTitle, { color: theme.colors.onSurface }]}>
-        {selectedCount} item{selectedCount === 1 ? '' : 's'} selected
+        {`${selectedCount} item${selectedCount === 1 ? '' : 's'} selected`}
       </Text>
       <View style={styles.bulkActionsButtons}>
         {actions.map((action) => (

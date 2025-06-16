@@ -478,7 +478,9 @@ router.delete('/:matchId', auth, async (req, res) => {
       message: 'Match deleted successfully'
     });
   } catch (error) {
-    console.error('Delete match error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Delete match error:', error);
+    }
     res.status(500).json({
       success: false,
       error: 'Failed to delete match'

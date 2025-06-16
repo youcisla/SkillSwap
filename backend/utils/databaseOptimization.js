@@ -4,7 +4,10 @@ const mongoose = require('mongoose');
 // Initialize database with proper setup
 const initializeDatabase = async () => {
   try {
-    console.log('🔧 Initializing database...');
+    // Production mode - minimal logging
+    if (process.env.NODE_ENV === 'production') {
+      console.log('🔧 Initializing database...');
+    }
     
     // Set up connection optimizations
     optimizeConnection();
@@ -12,10 +15,14 @@ const initializeDatabase = async () => {
     // Create all necessary indexes
     await createOptimizedIndexes();
     
-    console.log('✅ Database initialization completed');
+    if (process.env.NODE_ENV === 'production') {
+      console.log('✅ Database initialization completed');
+    }
     return true;
   } catch (error) {
-    console.error('❌ Database initialization failed:', error);
+    if (process.env.NODE_ENV === 'production') {
+      console.error('❌ Database initialization failed:', error.message);
+    }
     throw error;
   }
 };
@@ -23,7 +30,9 @@ const initializeDatabase = async () => {
 // Enhanced indexes for better query performance
 const createOptimizedIndexes = async () => {
   try {
-    console.log('🔧 Creating optimized database indexes...');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 Creating optimized database indexes...');
+    }
 
     // First, let's clean up any invalid location data
     await cleanupInvalidLocationData();
@@ -52,7 +61,10 @@ const createOptimizedIndexes = async () => {
       
       await mongoose.connection.db.collection('users').createIndexes(userIndexesToCreate);
     } catch (userIndexError) {
-      console.warn('⚠️ Some user indexes may already exist:', userIndexError.message);
+      // Silent error handling in production
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('⚠️ Some user indexes may already exist:', userIndexError.message);
+      }
     }
 
     // Try to create geospatial index separately with error handling
@@ -163,9 +175,13 @@ const createOptimizedIndexes = async () => {
       console.warn('⚠️ Some follow indexes may already exist:', followIndexError.message);
     }
 
-    console.log('✅ Database indexes created successfully');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Database indexes created successfully');
+    }
   } catch (error) {
-    console.error('❌ Error creating indexes:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ Error creating indexes:', error);
+    }
     // Don't throw the error, just log it so the server can continue
   }
 };

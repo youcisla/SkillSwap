@@ -142,21 +142,26 @@ async function startServer() {
 // Enhanced MongoDB connection with optimization and better error handling
 async function connectToMongoDB() {
   const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/skillswap';
-  console.log(`📡 Attempting to connect to MongoDB: ${mongoURI}`);
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`📡 Attempting to connect to MongoDB: ${mongoURI}`);
+  }
   
   try {
     await mongoose.connect(mongoURI, {
-      serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      maxPoolSize: 10, // Maintain up to 10 socket connections
-      minPoolSize: 5, // Maintain a minimum of 5 socket connections
-      maxIdleTimeMS: 30000, // Close connections after 30 seconds
-      connectTimeoutMS: 10000, // Give up initial connection after 10 seconds
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      maxPoolSize: 10,
+      minPoolSize: 5,
+      maxIdleTimeMS: 30000,
+      connectTimeoutMS: 10000,
     });
 
     console.log('✅ Connected to MongoDB successfully');
-    console.log(`📊 Database: ${mongoose.connection.db.databaseName}`);
-    console.log(`🔗 Connection state: ${mongoose.connection.readyState}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📊 Database: ${mongoose.connection.db.databaseName}`);
+      console.log(`🔗 Connection state: ${mongoose.connection.readyState}`);
+    }
     
     // Initialize database with indexes and optimizations
     await initializeDatabase();
@@ -165,26 +170,29 @@ async function connectToMongoDB() {
   } catch (error) {
     console.error('❌ MongoDB connection failed:', error.message);
     
-    // Provide helpful error messages and solutions
-    if (error.message.includes('ECONNREFUSED')) {
-      console.error('\n💡 MongoDB Connection Solutions:');
-      console.error('   1. 🔧 Install MongoDB locally:');
-      console.error('      • Download from: https://www.mongodb.com/try/download/community');
-      console.error('      • Or run: setup-mongodb.bat (from project root)');
-      console.error('   2. 🐳 Use Docker:');
-      console.error('      • Run: setup-mongodb-docker.bat');
-      console.error('      • Or: docker run -d -p 27017:27017 --name skillswap-mongo mongo');
-      console.error('   3. ☁️  Use MongoDB Atlas (cloud):');
-      console.error('      • Visit: https://www.mongodb.com/atlas/database');
-      console.error('      • Update MONGODB_URI in .env file');
-      console.error('   4. 🎯 Test connection: node test-mongodb.js');
-      console.error('\n⚠️  Server will continue without database (limited functionality)');
-    } else if (error.message.includes('authentication')) {
-      console.error('\n🔐 Authentication Error:');
-      console.error('   • Check your MongoDB username/password in MONGODB_URI');
-      console.error('   • Ensure your IP is whitelisted (for MongoDB Atlas)');
-    } else {
-      console.error('\n❓ Unexpected error. Check your MongoDB configuration.');
+    // Only show detailed help in development
+    if (process.env.NODE_ENV === 'development') {
+      // Provide helpful error messages and solutions
+      if (error.message.includes('ECONNREFUSED')) {
+        console.error('\n💡 MongoDB Connection Solutions:');
+        console.error('   1. 🔧 Install MongoDB locally:');
+        console.error('      • Download from: https://www.mongodb.com/try/download/community');
+        console.error('      • Or run: setup-mongodb.bat (from project root)');
+        console.error('   2. 🐳 Use Docker:');
+        console.error('      • Run: setup-mongodb-docker.bat');
+        console.error('      • Or: docker run -d -p 27017:27017 --name skillswap-mongo mongo');
+        console.error('   3. ☁️  Use MongoDB Atlas (cloud):');
+        console.error('      • Visit: https://www.mongodb.com/atlas/database');
+        console.error('      • Update MONGODB_URI in .env file');
+        console.error('   4. 🎯 Test connection: node test-mongodb.js');
+        console.error('\n⚠️  Server will continue without database (limited functionality)');
+      } else if (error.message.includes('authentication')) {
+        console.error('\n🔐 Authentication Error:');
+        console.error('   • Check your MongoDB username/password in MONGODB_URI');
+        console.error('   • Ensure your IP is whitelisted (for MongoDB Atlas)');
+      } else {
+        console.error('\n❓ Unexpected error. Check your MongoDB configuration.');
+      }
     }
     
     // Don't throw the error - let the server start without database

@@ -4,26 +4,15 @@ import { ApiService } from './apiService';
 class UserService {
   async getUserProfile(userId: string): Promise<UserProfile> {
     try {
-      console.log('UserService: Fetching profile for user:', userId);
       const response = await ApiService.get<ApiResponse<UserProfile>>(`/users/${userId}`);
       
-      console.log('UserService: API response:', {
-        success: response.success,
-        hasData: !!response.data,
-        error: response.error,
-        userId
-      });
-      
       if (response.success && response.data) {
-        console.log('UserService: Successfully fetched user:', response.data.id, response.data.name);
         return response.data;
       }
       
       const errorMessage = response.error || 'Failed to get user profile';
-      console.error('UserService: API returned error:', errorMessage);
       throw new Error(errorMessage);
     } catch (error) {
-      console.error('UserService: Get user profile error:', error);
       throw error;
     }
   }
@@ -48,9 +37,6 @@ class UserService {
 
   async uploadProfileImage(userId: string, imageUri: string): Promise<string> {
     try {
-      console.log('UserService: Uploading profile image for user:', userId);
-      console.log('UserService: Image URI:', imageUri);
-      
       const formData = new FormData();
       const filename = imageUri.split('/').pop() || 'profile.jpg';
       const fileType = filename.split('.').pop() || 'jpg';
@@ -61,14 +47,9 @@ class UserService {
         name: filename,
       } as any);
 
-      console.log('UserService: FormData constructed, making request...');
-      
       const response = await ApiService.uploadFile<any>(`/users/${userId}/upload-image`, formData);
       
-      console.log('UserService: Upload response:', response);
-      
       if (response.success && response.data && response.data.profileImage) {
-        console.log('UserService: Upload successful, returning URL:', response.data.profileImage);
         return response.data.profileImage;
       }
       
@@ -116,7 +97,6 @@ class UserService {
       const response = await ApiService.get<ApiResponse<UserProfile[]>>(url);
       
       if (response.success && response.data) {
-        console.log('UserService: Received users:', response.data.length);
         return response.data;
       }
       

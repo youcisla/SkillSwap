@@ -13,7 +13,9 @@ const Message = require('./models/Message');
 
 async function createQuickTestData() {
   try {
-    console.log('🚀 Creating test data quickly...');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🚀 Creating test data quickly...');
+    }
 
     // Create matches first
     await require('./quick-create-matches');
@@ -26,11 +28,15 @@ async function createQuickTestData() {
     const yahooUser = await User.findOne({ name: 'Yahoo' });
 
     if (!currentUser || !yahooUser) {
-      console.log('❌ Users not found');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('❌ Users not found');
+      }
       return;
     }
 
-    console.log(`Creating chat between ${currentUser.name} and ${yahooUser.name}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Creating chat between ${currentUser.name} and ${yahooUser.name}`);
+    }
 
     // Create a chat between them
     const chatId = Chat.generateChatId(currentUser._id, yahooUser._id);
@@ -43,7 +49,10 @@ async function createQuickTestData() {
         isActive: true
       });
       await chat.save();
-      console.log('✅ Chat created');
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Chat created');
+      }
 
       // Add a welcome message
       const message = new Message({
@@ -59,16 +68,24 @@ async function createQuickTestData() {
       chat.lastMessage = message._id;
       await chat.save();
       
-      console.log('✅ Welcome message added');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Welcome message added');
+      }
     } else {
-      console.log('✅ Chat already exists');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Chat already exists');
+      }
     }
 
-    console.log('🎉 Test data created successfully!');
-    console.log('💬 You should now see matches and be able to chat!');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🎉 Test data created successfully!');
+      console.log('💬 You should now see matches and be able to chat!');
+    }
 
   } catch (error) {
-    console.error('❌ Error creating test data:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('❌ Error creating test data:', error);
+    }
   } finally {
     mongoose.connection.close();
   }
