@@ -1,0 +1,273 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# ==========================================
+# DEPENDENCIES & PACKAGE MANAGERS
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+.yarn-integrity
+
+# Package manager lock files (uncomment if you want to ignore them)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ==========================================
+# EXPO & REACT NATIVE
+# ==========================================
+.expo/
+.expo-shared/
+dist/
+web-build/
+expo-env.d.ts
+
+# React Native
+android/
+ios/
+*.ipa
+*.apk
+*.aab
+
+# Metro bundler
+.metro-health-check*
+metro.config.js.bak
+
+# Native builds
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.keystore
+
+# ==========================================
+# ENVIRONMENT VARIABLES
+# ==========================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# ==========================================
+# TYPESCRIPT & BUILD OUTPUT
+# ==========================================
+*.tsbuildinfo
+build/
+dist/
+lib/
+out/
+
+# TypeScript incremental compilation
+*.tsbuildinfo
+
+# ==========================================
+# LOGS & DEBUGGING
+# ==========================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+debug.log
+error.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ==========================================
+# TESTING & COVERAGE
+# ==========================================
+coverage/
+*.lcov
+.nyc_output
+junit.xml
+test-results/
+
+# ==========================================
+# CACHING & TEMPORARY FILES
+# ==========================================
+.cache/
+.parcel-cache/
+.npm/
+.eslintcache
+.stylelintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Temporary folders
+tmp/
+temp/
+*.tmp
+
+# ==========================================
+# DEVELOPMENT TOOLS
+# ==========================================
+# Grunt intermediate storage
+.grunt
+
+# Bower dependency directory
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons
+build/Release
+
+# Dependency directories
+jspm_packages/
+
+# ==========================================
+# BUNDLERS & BUILD TOOLS
+# ==========================================
+# Webpack
+.webpack/
+
+# Next.js build output
+.next/
+out/
+
+# Nuxt.js build / generate output
+.nuxt/
+
+# Gatsby files
+public/
+
+# Storybook build outputs
+.out/
+.storybook-out/
+storybook-static/
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# ==========================================
+# EDITORS & IDEs
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ==========================================
+# OPERATING SYSTEMS
+# ==========================================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ==========================================
+# CERTIFICATES & SECURITY
+# ==========================================
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+
+# ==========================================
+# DATABASES
+# ==========================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# MongoDB
+data/
+mongo-data/
+
+# ==========================================
+# CLOUD SERVICES
+# ==========================================
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Sentry
+.sentryclirc
+
+# AWS
+.aws/
+
+# ==========================================
+# PACKAGE OUTPUT
+# ==========================================
+*.tgz
+*.tar.gz
+
+# ==========================================
+# BACKUP FILES
+# ==========================================
+*.backup
+*.bak
+*.old
+*.orig
+
+# ==========================================
+# PROJECT SPECIFIC
+# ==========================================
+# Debug files
+debug-*.js
+*-debug.*
+
+# Local configuration
+local.json
+config.local.js
+
+# Upload directories
+uploads/
+public/uploads/
