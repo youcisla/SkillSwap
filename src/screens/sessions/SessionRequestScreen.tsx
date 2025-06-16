@@ -17,6 +17,7 @@ import {
   Title,
   useTheme,
 } from 'react-native-paper';
+import CustomDateTimePicker from '../../components/DateTimePicker';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { createSession } from '../../store/slices/sessionSlice';
 import { RootStackParamList } from '../../types';
@@ -35,14 +36,22 @@ const SessionRequestScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user } = useAppSelector((state) => state.auth);
   const { loading } = useAppSelector((state) => state.sessions);
   
-  const { otherUserId, skillId, skillName, isTeaching } = route.params;
+  const { otherUserId, skillId, skillName, isTeaching, scheduledAt } = route.params;
   
-  // Set default date to tomorrow at 10 AM (immutable)
-  const defaultDate = new Date();
-  defaultDate.setDate(defaultDate.getDate() + 1);
-  defaultDate.setHours(10, 0, 0, 0);
+  // Use the scheduled date from calendar if provided, otherwise default to tomorrow at 10 AM
+  const getInitialDate = () => {
+    if (scheduledAt) {
+      return new Date(scheduledAt);
+    }
+    const defaultDate = new Date();
+    defaultDate.setDate(defaultDate.getDate() + 1);
+    defaultDate.setHours(10, 0, 0, 0);
+    return defaultDate;
+  };
   
-  const [date] = useState(defaultDate); // Removed setDate since it's immutable
+  const [date, setDate] = useState(getInitialDate());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -50,7 +59,10 @@ const SessionRequestScreen: React.FC<Props> = ({ navigation, route }) => {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     
-    // Date validation removed since it's preset to tomorrow
+    // Date validation - must be in the future
+    if (date <= new Date()) {
+      newErrors.date = 'Please select a future date and time';
+    }
     
     if (!location.trim()) {
       newErrors.location = 'Location is required';
@@ -99,6 +111,24 @@ const SessionRequestScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
+  const handleDateTimeConfirm = (selectedDate: Date) => {
+    setDate(selectedDate);
+    setShowDatePicker(false);
+    setShowTimePicker(false);
+    setErrors(prev => ({ ...prev, date: '' })); // Clear date error
+  };
+
+  const handleDatePress = () => {
+    setShowDatePicker(true);
+  };
+
+  const formatDateTime = (date: Date) => {
+    return `${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    })}`;
+  };
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
@@ -118,19 +148,19 @@ const SessionRequestScreen: React.FC<Props> = ({ navigation, route }) => {
           <Card.Content>
             <Title style={styles.sectionTitle}>Session Details</Title>
             
-            {/* Date Display (Immutable) */}
-            <Text style={styles.label}>Scheduled Date</Text>
-            <View style={styles.dateDisplay}>
-              <Text style={styles.dateText}>{date.toLocaleDateString()}</Text>
-            </View>
-            <HelperText type="info">Session date is set to tomorrow for convenience</HelperText>
-
-            {/* Time Display (Immutable) */}
-            <Text style={styles.label}>Scheduled Time</Text>
-            <View style={styles.dateDisplay}>
-              <Text style={styles.dateText}>{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-            </View>
-            <HelperText type="info">Default time can be adjusted after session is accepted</HelperText>
+            {/* Date and Time Picker */}
+            <Text style={styles.label}>Scheduled Date & Time</Text>
+            <Button
+              mode="outlined"
+              onPress={handleDatePress}
+              style={styles.dateButton}
+              contentStyle={styles.dateButtonContent}
+              icon="calendar"
+            >
+              {formatDateTime(date)}
+            </Button>
+            {errors.date && <HelperText type="error">{errors.date}</HelperText>}
+            <HelperText type="info">Tap to change the date and time</HelperText>
 
             <Divider style={styles.divider} />
 
@@ -198,7 +228,14 @@ const SessionRequestScreen: React.FC<Props> = ({ navigation, route }) => {
           </Button>
         </View>
 
-        {/* Date Picker Modals - Removed since date is now immutable */}
+        {/* Custom DateTime Picker */}
+        <CustomDateTimePicker
+          visible={showDatePicker}
+          onDismiss={() => setShowDatePicker(false)}
+          onConfirm={handleDateTimeConfirm}
+          minimumDate={new Date()}
+          title="Select Session Date & Time"
+        />
       </View>
     </ScrollView>
   );

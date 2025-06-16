@@ -174,15 +174,27 @@ const ProfileScreen: React.FC = () => {
         text: `${skill.name} (${skill.level})`,
         onPress: () => {
           try {
+            // Navigate to calendar first to select date/time, then to session request
+            (navigation as any).navigate('Calendar', {
+              screen: 'CalendarMain',
+              params: { 
+                preSelectSkill: { 
+                  skillId: skill.id, 
+                  skillName: skill.name, 
+                  otherUserId: normalizedUserId,
+                  isTeaching: true 
+                } 
+              }
+            });
+          } catch (error) {
+            console.log('Session request navigation error:', error);
+            // Fallback: navigate directly to session request with default time
             (navigation as any).navigate('SessionRequest', {
               otherUserId: normalizedUserId,
               skillId: skill.id,
               skillName: skill.name,
               isTeaching: true
             });
-          } catch (error) {
-            console.log('Session request navigation error:', error);
-            Alert.alert('Error', 'Unable to navigate to session request');
           }
         }
       }));

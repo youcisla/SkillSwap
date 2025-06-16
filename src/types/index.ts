@@ -144,7 +144,8 @@ export type RootStackParamList = {
     otherUserId: string; 
     skillId: string; 
     skillName: string; 
-    isTeaching: boolean; 
+    isTeaching: boolean;
+    scheduledAt?: string;
   };
   Feedback: { sessionId: string; otherUserName: string };
   Calendar: undefined;
@@ -175,7 +176,8 @@ export type HomeStackParamList = {
     otherUserId: string; 
     skillId: string; 
     skillName: string; 
-    isTeaching: boolean; 
+    isTeaching: boolean;
+    scheduledAt?: string;
   };
 };
 
@@ -187,7 +189,8 @@ export type MatchesStackParamList = {
     otherUserId: string; 
     skillId: string; 
     skillName: string; 
-    isTeaching: boolean; 
+    isTeaching: boolean;
+    scheduledAt?: string;
   };
 };
 
@@ -207,18 +210,27 @@ export type ProfileStackParamList = {
     otherUserId: string; 
     skillId: string; 
     skillName: string; 
-    isTeaching: boolean; 
+    isTeaching: boolean;
+    scheduledAt?: string;
   };
 };
 
 export type CalendarStackParamList = {
-  CalendarMain: undefined;
+  CalendarMain: { 
+    preSelectSkill?: {
+      skillId: string;
+      skillName: string;
+      otherUserId: string;
+      isTeaching: boolean;
+    }
+  };
   SessionDetails: { sessionId: string };
   SessionRequest: { 
     otherUserId: string; 
     skillId: string; 
     skillName: string; 
-    isTeaching: boolean; 
+    isTeaching: boolean;
+    scheduledAt?: string;
   };
 };
 

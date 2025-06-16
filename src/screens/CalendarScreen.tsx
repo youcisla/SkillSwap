@@ -1,4 +1,5 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
 import {
@@ -30,9 +31,11 @@ import { cancelSession, fetchSessions, updateSessionStatus } from '../store/slic
 import { CalendarStackParamList, Session, SessionStatus, Skill, User } from '../types';
 
 type CalendarScreenNavigationProp = StackNavigationProp<CalendarStackParamList, 'CalendarMain'>;
+type CalendarScreenRouteProp = RouteProp<CalendarStackParamList, 'CalendarMain'>;
 
 interface Props {
   navigation: CalendarScreenNavigationProp;
+  route: CalendarScreenRouteProp;
 }
 
 interface CalendarDay {
@@ -49,11 +52,14 @@ interface TimeSlot {
   conflictingUsers: string[];
 }
 
-const CalendarScreen: React.FC<Props> = ({ navigation }) => {
+const CalendarScreen: React.FC<Props> = ({ navigation, route }) => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { sessions, loading } = useAppSelector((state) => state.sessions);
   const { users } = useAppSelector((state) => state.user);
+
+  // Get preselected skill from route params
+  const preSelectSkill = route.params?.preSelectSkill;
 
   const [refreshing, setRefreshing] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -65,7 +71,7 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState(new Date());
-  const [calendarView, setCalendarView] = useState<'list' | 'calendar'>('list');
+  const [calendarView, setCalendarView] = useState<'list' | 'calendar'>(preSelectSkill ? 'calendar' : 'list');
   
   // Session creation modal
   const [showSessionModal, setShowSessionModal] = useState(false);
@@ -90,6 +96,25 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       loadSessions();
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    // Handle preselected skill from ProfileScreen
+    if (preSelectSkill) {
+      Alert.alert(
+        'Schedule Session',
+        `Select a date and time to schedule a ${preSelectSkill.isTeaching ? 'teaching' : 'learning'} session for "${preSelectSkill.skillName}".`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Auto-switch to calendar view for better UX
+              setCalendarView('calendar');
+            }
+          }
+        ]
+      );
+    }
+  }, [preSelectSkill]);
 
   const loadSessions = async () => {
     if (!user?.id) return;
@@ -273,6 +298,18 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
 
     const sessionDateTime = new Date(selectedDate);
     sessionDateTime.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
+    
+    // If we have preselected skill data, navigate directly to SessionRequest
+    if (preSelectSkill) {
+      navigation.navigate('SessionRequest', {
+        otherUserId: preSelectSkill.otherUserId,
+        skillId: preSelectSkill.skillId,
+        skillName: preSelectSkill.skillName,
+        isTeaching: preSelectSkill.isTeaching,
+        scheduledAt: sessionDateTime.toISOString()
+      });
+      return;
+    }
     
     // Check for conflicts
     const timeSlots = getTimeSlots(selectedDate);
@@ -511,7 +548,7 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
                 onPress={createSessionAtDateTime}
                 style={styles.scheduleButton}
               >
-                Schedule Session
+                {preSelectSkill ? `Schedule ${preSelectSkill.skillName} Session` : 'Schedule Session'}
               </Button>
             </View>
           )}
@@ -724,6 +761,20 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Preselected Skill Banner */}
+      {preSelectSkill && (
+        <Card style={styles.preselectedSkillBanner}>
+          <Card.Content>
+            <Text style={styles.bannerText}>
+              📅 Scheduling {preSelectSkill.isTeaching ? 'teaching' : 'learning'} session for "{preSelectSkill.skillName}"
+            </Text>
+            <Text style={styles.bannerSubtext}>
+              Select a date and time below, then tap "Schedule Session"
+            </Text>
+          </Card.Content>
+        </Card>
+      )}
+      
       {renderViewToggle()}
       
       {calendarView === 'calendar' ? (
@@ -895,10 +946,19 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.fab}
         icon="plus"
         onPress={() => {
-          // Navigate to Matches tab to schedule a session
-          (navigation as any).navigate('Matches');
+          if (preSelectSkill) {
+            // If skill is preselected, help user schedule for that skill
+            Alert.alert(
+              'Schedule Session',
+              `Select a date and time above, then tap "Schedule Session" to continue with "${preSelectSkill.skillName}".`,
+              [{ text: 'OK' }]
+            );
+          } else {
+            // Navigate to Matches tab to schedule a session
+            (navigation as any).navigate('Matches');
+          }
         }}
-        label="Schedule"
+        label={preSelectSkill ? `Schedule ${preSelectSkill.skillName}` : "Schedule"}
       />
     </View>
   );
@@ -916,6 +976,23 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  // Preselected Skill Banner Styles
+  preselectedSkillBanner: {
+    margin: 16,
+    marginBottom: 0,
+    backgroundColor: '#e8f5e8',
+    elevation: 2,
+  },
+  bannerText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2e7d32',
+    marginBottom: 4,
+  },
+  bannerSubtext: {
+    fontSize: 14,
+    color: '#4caf50',
   },
   // View Toggle Styles
   viewToggle: {

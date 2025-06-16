@@ -1,12 +1,20 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const dotenv = require('dotenv');
 const User = require('../models/User');
+
+// Load environment variables
+dotenv.config();
 
 async function setupAdminUser() {
   try {
     console.log('🔗 Connecting to MongoDB...');
     
-    await mongoose.connect('mongodb://localhost:27017/skillswap', {
+    // Use the same connection string as the main server
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/skillswap';
+    console.log('🔗 Using MongoDB URI:', mongoUri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')); // Hide credentials in logs
+    
+    await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
@@ -14,7 +22,13 @@ async function setupAdminUser() {
     console.log('✅ Connected to MongoDB');
     
     const adminEmail = 'admin@admin.admin';
-    const adminPassword = process.env.ADMIN_PASSWORD;
+    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin123!';
+    
+    console.log('🔑 Using admin password from environment:', adminPassword ? '✅ Found' : '❌ Not found');
+    
+    if (!adminPassword) {
+      throw new Error('ADMIN_PASSWORD environment variable is required');
+    }
     
     // Check if admin user already exists
     const existingAdmin = await User.findOne({ email: adminEmail });
