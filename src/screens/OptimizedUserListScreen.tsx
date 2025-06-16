@@ -2,19 +2,19 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    RefreshControl,
-    StyleSheet,
-    View
+  RefreshControl,
+  StyleSheet,
+  View
 } from 'react-native';
 import {
-    Chip,
-    IconButton,
-    Paragraph,
-    Searchbar,
-    SegmentedButtons,
-    Text,
-    Title,
-    useTheme
+  Chip,
+  IconButton,
+  Paragraph,
+  Searchbar,
+  SegmentedButtons,
+  Text,
+  Title,
+  useTheme
 } from 'react-native-paper';
 import SafeAvatar from '../components/SafeAvatar';
 import EnhancedButton from '../components/ui/EnhancedButton';
@@ -286,9 +286,10 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
                       {skill?.name || 'Unknown Skill'}
                     </Chip>
                   ))}
-                  {userProfile.skillsToTeach.length > 2 && (                  <Chip style={styles.moreChip} compact>
-                    <Text>+{userProfile.skillsToTeach.length - 2}</Text>
-                  </Chip>
+                  {userProfile.skillsToTeach.length > 2 && (
+                    <Chip style={styles.moreChip} compact>
+                      +{userProfile.skillsToTeach.length - 2}
+                    </Chip>
                   )}
                 </View>
               </View>
@@ -370,9 +371,10 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
                     {skill?.name || 'Unknown Skill'}
                   </Chip>
                 ))}
-                {userProfile.skillsToTeach.length > 3 && (                <Chip style={styles.moreChip} compact>
-                  <Text>+{userProfile.skillsToTeach.length - 3}</Text>
-                </Chip>
+                {userProfile.skillsToTeach.length > 3 && (
+                  <Chip style={styles.moreChip} compact>
+                    +{userProfile.skillsToTeach.length - 3}
+                  </Chip>
                 )}
               </View>
             </View>
@@ -396,8 +398,8 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
                   </Chip>
                 ))}
                 {userProfile.skillsToLearn.length > 3 && (                <Chip style={styles.moreChip} compact>
-                  <Text>+{userProfile.skillsToLearn.length - 3}</Text>
-                </Chip>
+                    +{userProfile.skillsToLearn.length - 3}
+                  </Chip>
                 )}
               </View>
             </View>

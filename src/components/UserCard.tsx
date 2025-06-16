@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Button, Card, Chip, Paragraph, Title } from 'react-native-paper';
 import { UserProfile } from '../types';
 import { safeGetKey, safeGetProfileImage, safeRenderSkill, safeRenderText, safeRenderUserName } from '../utils/safeRender';
@@ -90,7 +90,7 @@ const UserCard: React.FC<UserCardProps> = ({
                   ))}
                   {user.skillsToTeach.length > 3 && (
                     <Chip style={styles.moreChip} compact>
-                      <Text>+{user.skillsToTeach.length - 3}</Text>
+                      +{user.skillsToTeach.length - 3}
                     </Chip>
                   )}
                 </View>
@@ -113,7 +113,7 @@ const UserCard: React.FC<UserCardProps> = ({
                   ))}
                   {user.skillsToLearn.length > 3 && (
                     <Chip style={styles.moreChip} compact>
-                      <Text>+{user.skillsToLearn.length - 3}</Text>
+                      +{user.skillsToLearn.length - 3}
                     </Chip>
                   )}
                 </View>

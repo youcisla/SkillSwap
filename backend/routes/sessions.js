@@ -46,9 +46,19 @@ router.post('/', auth, async (req, res) => {
     // Basic validation
     if (!teacherId || !studentId || !skillId || !scheduledAt) {
       console.log('❌ Missing required fields');
+      const missingFields = [];
+      if (!teacherId) missingFields.push('teacherId');
+      if (!studentId) missingFields.push('studentId');
+      if (!skillId) missingFields.push('skillId');
+      if (!scheduledAt) missingFields.push('scheduledAt');
+      
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: teacherId, studentId, skillId, scheduledAt'
+        error: `Missing required fields: ${missingFields.join(', ')}`,
+        details: {
+          received: { teacherId, studentId, skillId, scheduledAt },
+          missing: missingFields
+        }
       });
     }
 
@@ -212,28 +222,60 @@ router.get('/:sessionId', auth, async (req, res) => {
 // Update session status
 router.put('/:sessionId/status', auth, async (req, res) => {
   try {
+    console.log('🔄 Update session status request for ID:', req.params.sessionId);
+    console.log('📝 New status:', req.body.status);
+    console.log('👤 User ID:', req.userId);
+    
     const { status } = req.body;
+    
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        error: 'Status is required'
+      });
+    }
+
+    const validStatuses = ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+      });
+    }
+    
+    if (!mongoose.Types.ObjectId.isValid(req.params.sessionId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid session ID format'
+      });
+    }
     
     const session = await Session.findById(req.params.sessionId);
     if (!session) {
+      console.log('❌ Session not found:', req.params.sessionId);
       return res.status(404).json({
         success: false,
         error: 'Session not found'
       });
     }
 
+    console.log('✅ Session found:', session._id);
+    console.log('🔄 Current status:', session.status);
+
     // Check if user is part of this session
     if (session.teacherId.toString() !== req.userId && session.studentId.toString() !== req.userId) {
+      console.log('❌ User not authorized to update this session');
       return res.status(403).json({
         success: false,
         error: 'You are not part of this session'
       });
     }
 
+    console.log('🔄 Updating session status');
     const updatedSession = await Session.findByIdAndUpdate(
       req.params.sessionId,
       { status },
-      { new: true }
+      { new: true, runValidators: true }
     )
     .populate('teacherId', 'name profileImage')
     .populate('studentId', 'name profileImage')
@@ -301,29 +343,54 @@ router.put('/:sessionId', auth, async (req, res) => {
 // Cancel session
 router.put('/:sessionId/cancel', auth, async (req, res) => {
   try {
+    console.log('🔄 Cancel session request for ID:', req.params.sessionId);
+    console.log('👤 User ID:', req.userId);
+    
     const { reason } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(req.params.sessionId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid session ID format'
+      });
+    }
     
     const session = await Session.findById(req.params.sessionId);
     if (!session) {
+      console.log('❌ Session not found:', req.params.sessionId);
       return res.status(404).json({
         success: false,
         error: 'Session not found'
       });
     }
 
+    console.log('✅ Session found:', session._id);
+    console.log('👨‍🏫 Teacher ID:', session.teacherId);
+    console.log('👨‍🎓 Student ID:', session.studentId);
+
     // Check if user is part of this session
     if (session.teacherId.toString() !== req.userId && session.studentId.toString() !== req.userId) {
+      console.log('❌ User not authorized to cancel this session');
       return res.status(403).json({
         success: false,
         error: 'You are not part of this session'
       });
     }
 
+    // Check if session is already cancelled
+    if (session.status === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        error: 'Session is already cancelled'
+      });
+    }
+
+    console.log('🔄 Updating session status to cancelled');
     const updatedSession = await Session.findByIdAndUpdate(
       req.params.sessionId,
       { 
         status: 'cancelled',
-        cancellationReason: reason
+        cancellationReason: reason || 'No reason provided'
       },
       { new: true }
     )
@@ -331,6 +398,7 @@ router.put('/:sessionId/cancel', auth, async (req, res) => {
     .populate('studentId', 'name profileImage')
     .populate('skillId', 'name category');
 
+    console.log('✅ Session cancelled successfully');
     res.json({
       success: true,
       data: updatedSession
