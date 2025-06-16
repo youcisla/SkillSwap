@@ -163,6 +163,51 @@ const ProfileScreen: React.FC = () => {
     }
   };
 
+  const handleRequestSession = () => {
+    if (!normalizedUserId || normalizedUserId === String(user?.id)) {
+      return;
+    }
+
+    // If the user has teaching skills, show them for selection
+    if (teachSkills.length > 0) {
+      const skillOptions = teachSkills.map(skill => ({
+        text: `${skill.name} (${skill.level})`,
+        onPress: () => {
+          try {
+            (navigation as any).navigate('SessionRequest', {
+              otherUserId: normalizedUserId,
+              skillId: skill.id,
+              skillName: skill.name,
+              isTeaching: true
+            });
+          } catch (error) {
+            console.log('Session request navigation error:', error);
+            Alert.alert('Error', 'Unable to navigate to session request');
+          }
+        }
+      }));
+
+      // Add cancel option
+      skillOptions.push({
+        text: 'Cancel',
+        onPress: () => {},
+        style: 'cancel'
+      });
+
+      Alert.alert(
+        'Select a Skill',
+        'Choose which skill you want to request a session for:',
+        skillOptions
+      );
+    } else {
+      // No skills available - show message
+      Alert.alert(
+        'No Teaching Skills',
+        'This user has not added any teaching skills yet. Session requests are only available for skills they can teach.'
+      );
+    }
+  };
+
   const handleFollowToggle = async () => {
     if (!normalizedUserId || !user?.id) return;
     
@@ -439,10 +484,7 @@ const ProfileScreen: React.FC = () => {
             <EnhancedButton
               title="Request Session"
               variant="outline"
-              onPress={() => {
-                // TODO: Implement session request
-                Alert.alert('Coming Soon', 'Session request feature will be available soon!');
-              }}
+              onPress={handleRequestSession}
               style={styles.actionButton}
               icon={renderIcon("calendar-plus")}
               hapticFeedback

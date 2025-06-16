@@ -109,6 +109,13 @@ class MessageService {
 
   async findOrCreateChat(participants: string[]): Promise<Chat> {
     try {
+      console.log('🐛 Frontend: findOrCreateChat called with:', {
+        participants,
+        participantsType: typeof participants,
+        isArray: Array.isArray(participants),
+        length: participants?.length
+      });
+      
       const response = await ApiService.post<ApiResponse<Chat>>('/chats/find-or-create', { participants });
       
       if (response.success && response.data) {

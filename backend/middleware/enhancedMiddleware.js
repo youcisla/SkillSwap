@@ -126,6 +126,9 @@ const sanitizeInput = (req, res, next) => {
         .replace(/(\b)(on\S+)(\s*)=|javascript|expression/gi, '')
         .trim();
     }
+    if (Array.isArray(obj)) {
+      return obj.map(item => sanitize(item));
+    }
     if (typeof obj === 'object' && obj !== null) {
       const sanitized = {};
       for (const key in obj) {
@@ -429,18 +432,29 @@ const performanceMonitor = (req, res, next) => {
 
 // Health check endpoint
 const healthCheck = (req, res) => {
-  const health = {
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    environment: process.env.NODE_ENV,
-    version: process.env.npm_package_version,
-    database: 'connected', // Should check actual DB connection
-    cache: cacheService.isConnected() ? 'connected' : 'disconnected'
-  };
+  try {
+    const health = {
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      environment: process.env.NODE_ENV,
+      version: process.env.npm_package_version,
+      database: 'connected', // Should check actual DB connection
+      cache: (cacheService && typeof cacheService.getConnectionStatus === 'function') 
+        ? (cacheService.getConnectionStatus() ? 'connected' : 'disconnected')
+        : 'unknown'
+    };
 
-  res.status(200).json(health);
+    res.status(200).json(health);
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(500).json({
+      status: 'ERROR',
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  }
 };
 
 module.exports = {

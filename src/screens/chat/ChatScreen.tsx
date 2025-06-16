@@ -67,8 +67,16 @@ const ChatScreen: React.FC = () => {
         try {
           debugLog('Initializing chat', { userId: user.id, otherUserId });
           
+          // Validate that both IDs are strings and not empty
+          if (typeof user.id !== 'string' || typeof otherUserId !== 'string' || !user.id.trim() || !otherUserId.trim()) {
+            throw new Error('Invalid user IDs provided');
+          }
+          
+          const participantsArray = [user.id, otherUserId];
+          debugLog('Participants array to send:', participantsArray);
+          
           // First, ensure the chat exists by finding or creating it
-          const chatResult = await dispatch(findOrCreateChat([user.id, otherUserId])).unwrap();
+          const chatResult = await dispatch(findOrCreateChat(participantsArray)).unwrap();
           debugLog('Chat found/created', chatResult);
           
           // Use the actual chat ID returned from the backend
