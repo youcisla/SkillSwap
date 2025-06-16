@@ -17,7 +17,7 @@ class SessionService {
     }
   }
 
-  async createSession(sessionData: Omit<Session, 'id' | 'createdAt' | 'updatedAt'>): Promise<Session> {
+  async createSession(sessionData: Omit<Session, 'id' | 'status' | 'createdAt' | 'updatedAt'>): Promise<Session> {
     try {
       const response = await ApiService.post<ApiResponse<Session>>('/sessions', sessionData);
       

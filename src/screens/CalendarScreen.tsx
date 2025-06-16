@@ -2,25 +2,25 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  Modal,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Alert,
+    Modal,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import {
-  Button,
-  Card,
-  Chip,
-  FAB,
-  IconButton,
-  Paragraph,
-  Text,
-  TextInput,
-  Title
+    Button,
+    Card,
+    Chip,
+    FAB,
+    IconButton,
+    Paragraph,
+    Text,
+    TextInput,
+    Title
 } from 'react-native-paper';
 import SafeAvatar from '../components/SafeAvatar';
 import { BulkActionsBar, SelectableItem, SelectionHeader } from '../components/ui/MultiSelection';
@@ -428,7 +428,7 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.daysGrid}>
             {days.map((day, index) => (
               <TouchableOpacity
-                key={index}
+                key={day.date.toISOString()}
                 style={[
                   styles.dayCell,
                   day.isToday && styles.todayCell,
@@ -471,7 +471,7 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           <ScrollView style={styles.timeSlotsContainer} showsVerticalScrollIndicator={false}>
             {timeSlots.map((slot, index) => (
               <TouchableOpacity
-                key={index}
+                key={slot.time}
                 style={[
                   styles.timeSlot,
                   !slot.isAvailable && styles.unavailableTimeSlot,

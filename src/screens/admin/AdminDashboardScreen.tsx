@@ -497,7 +497,7 @@ const AdminDashboardScreen: React.FC = () => {
 
   const renderTabBar = () => (
     <Surface style={styles.tabBar}>
-      {      [
+      {[
         { key: 'dashboard', label: 'Dashboard', icon: 'view-dashboard' },
         { key: 'users', label: 'Users', icon: 'account-group' },
         { key: 'skills', label: 'Skills', icon: 'lightbulb' },

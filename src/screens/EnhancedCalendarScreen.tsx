@@ -304,7 +304,11 @@ const EnhancedCalendarScreen: React.FC<Props> = ({ navigation }) => {
                 Sessions for {new Date(selectedDate).toLocaleDateString()}
               </Title>
               {selectedDateSessions.length > 0 ? (
-                selectedDateSessions.map((session) => renderSessionCard(session))
+                selectedDateSessions.map((session) => (
+                  <View key={session.id}>
+                    {renderSessionCard(session)}
+                  </View>
+                ))
               ) : (
                 <Text style={styles.noSessionsText}>
                   No sessions scheduled for this date
@@ -321,7 +325,11 @@ const EnhancedCalendarScreen: React.FC<Props> = ({ navigation }) => {
             {sessions
               .filter(session => new Date(session.scheduledAt) > new Date())
               .slice(0, 5)
-              .map((session) => renderSessionCard(session))}
+              .map((session) => (
+                <View key={session.id}>
+                  {renderSessionCard(session)}
+                </View>
+              ))}
           </Card.Content>
         </Card>
       </ScrollView>

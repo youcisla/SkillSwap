@@ -86,11 +86,18 @@ class NotificationService {
       }
 
       if (finalStatus !== 'granted') {
-        throw new Error('Push notification permission denied');
+        console.warn('Push notification permission denied');
+        return null;
       }
 
-      const token = (await Notifications.getExpoPushTokenAsync()).data;
-      return token;
+      try {
+        const token = (await Notifications.getExpoPushTokenAsync()).data;
+        return token;
+      } catch (projectIdError) {
+        console.warn('Push notifications not available in development build:', projectIdError.message);
+        console.log('📱 Running in local development mode - push notifications disabled');
+        return null;
+      }
     } catch (error) {
       console.error('Register for push notifications error:', error);
       return null;

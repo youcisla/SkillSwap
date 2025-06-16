@@ -2,24 +2,24 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    View
+  Alert,
+  ScrollView,
+  StyleSheet,
+  View
 } from 'react-native';
 import {
-    Button,
-    Card,
-    Divider,
-    HelperText,
-    Text,
-    TextInput,
-    Title,
-    useTheme,
+  Button,
+  Card,
+  Divider,
+  HelperText,
+  Text,
+  TextInput,
+  Title,
+  useTheme,
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { createSession } from '../../store/slices/sessionSlice';
-import { RootStackParamList, SessionStatus } from '../../types';
+import { RootStackParamList } from '../../types';
 
 type SessionRequestScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SessionRequest'>;
 type SessionRequestScreenRouteProp = RouteProp<RootStackParamList, 'SessionRequest'>;
@@ -70,7 +70,6 @@ const SessionRequestScreen: React.FC<Props> = ({ navigation, route }) => {
         teacherId: isTeaching ? user!.id : otherUserId,
         studentId: isTeaching ? otherUserId : user!.id,
         skillId,
-        status: SessionStatus.PENDING,
         scheduledAt: date,
         location: location.trim(),
         notes: notes.trim(),

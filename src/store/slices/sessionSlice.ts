@@ -23,7 +23,7 @@ export const fetchSessions = createAsyncThunk(
 
 export const createSession = createAsyncThunk(
   'sessions/createSession',
-  async (sessionData: Omit<Session, 'id' | 'createdAt' | 'updatedAt'>, { rejectWithValue }) => {
+  async (sessionData: Omit<Session, 'id' | 'status' | 'createdAt' | 'updatedAt'>, { rejectWithValue }) => {
     try {
       return await sessionService.createSession(sessionData);
     } catch (error: any) {
