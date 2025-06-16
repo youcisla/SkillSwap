@@ -48,14 +48,14 @@ const UserCard: React.FC<UserCardProps> = ({
             )}
             
             {/* Show follower counts if available */}
-            {(user.followersCount || user.followingCount) && (
+            {((user.followersCount && user.followersCount > 0) || (user.followingCount && user.followingCount > 0)) && (
               <View style={styles.followStatsContainer}>
-                {user.followersCount > 0 && (
+                {user.followersCount && user.followersCount > 0 && (
                   <Paragraph style={styles.followStat}>
                     {user.followersCount} followers
                   </Paragraph>
                 )}
-                {user.followingCount > 0 && (
+                {user.followingCount && user.followingCount > 0 && (
                   <Paragraph style={styles.followStat}>
                     {user.followingCount} following
                   </Paragraph>
@@ -79,7 +79,7 @@ const UserCard: React.FC<UserCardProps> = ({
                 <View style={styles.skillsContainer}>
                   {user.skillsToTeach.slice(0, 3).map((skill, index) => (
                     <Chip
-                      key={skill?.id || `teach-skill-${index}`}
+                      key={skill?.id || skill?.name || `teach-${user.id}-${index}`}
                       style={[styles.skillChip, styles.teachChip]}
                       textStyle={styles.teachChipText}
                       compact
@@ -102,7 +102,7 @@ const UserCard: React.FC<UserCardProps> = ({
                 <View style={styles.skillsContainer}>
                   {user.skillsToLearn.slice(0, 3).map((skill, index) => (
                     <Chip
-                      key={skill?.id || `learn-${index}`}
+                      key={skill?.id || skill?.name || `learn-${user.id}-${index}`}
                       style={[styles.skillChip, styles.learnChip]}
                       textStyle={styles.learnChipText}
                       compact

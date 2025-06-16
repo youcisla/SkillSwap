@@ -28,6 +28,7 @@ import FollowersScreen from '../screens/follows/FollowersScreen';
 import FollowingScreen from '../screens/follows/FollowingScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import SessionDetailsScreen from '../screens/sessions/SessionDetailsScreen';
+import SessionRequestScreen from '../screens/sessions/SessionRequestScreen';
 import AddSkillScreen from '../screens/skills/AddSkillScreen';
 import SkillManagementScreen from '../screens/skills/SkillManagementScreen';
 
@@ -78,6 +79,15 @@ function HomeStackNavigator() {
           headerStyle: { backgroundColor: '#6200ea' },
           headerTintColor: 'white'
         })}
+      />
+      <HomeStack.Screen 
+        name="SessionRequest" 
+        component={SessionRequestScreen}
+        options={{ 
+          title: 'Request Session',
+          headerStyle: { backgroundColor: '#6200ea' },
+          headerTintColor: 'white'
+        }}
       />
     </HomeStack.Navigator>
   );
@@ -151,6 +161,15 @@ function MatchesStackNavigator() {
           headerTintColor: 'white'
         }}
       />
+      <MatchesStack.Screen 
+        name="SessionRequest" 
+        component={SessionRequestScreen}
+        options={{ 
+          title: 'Request Session',
+          headerStyle: { backgroundColor: '#6200ea' },
+          headerTintColor: 'white'
+        }}
+      />
     </MatchesStack.Navigator>
   );
 }
@@ -174,6 +193,15 @@ function CalendarStackNavigator() {
         component={SessionDetailsScreen}
         options={{ 
           title: 'Session Details',
+          headerStyle: { backgroundColor: '#6200ea' },
+          headerTintColor: 'white'
+        }}
+      />
+      <CalendarStack.Screen 
+        name="SessionRequest" 
+        component={SessionRequestScreen}
+        options={{ 
+          title: 'Session Request',
           headerStyle: { backgroundColor: '#6200ea' },
           headerTintColor: 'white'
         }}
@@ -237,6 +265,15 @@ function ProfileStackNavigator() {
         component={FollowingScreen}
         options={{ 
           title: 'Following',
+          headerStyle: { backgroundColor: '#6200ea' },
+          headerTintColor: 'white'
+        }}
+      />
+      <ProfileStack.Screen 
+        name="SessionRequest" 
+        component={SessionRequestScreen}
+        options={{ 
+          title: 'Request Session',
           headerStyle: { backgroundColor: '#6200ea' },
           headerTintColor: 'white'
         }}

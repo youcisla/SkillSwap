@@ -128,7 +128,7 @@ const AccessibilitySettingsScreen: React.FC<AccessibilitySettingsProps> = ({
                   style={styles.chip}
                   accessibilityLabel={`Set font size to ${option.label}`}
                 >
-                  <Text>{option.label}</Text>
+                  {option.label}
                 </Chip>
               ))}
             </View>

@@ -171,12 +171,24 @@ export type HomeStackParamList = {
   UserList: { skillId?: string };
   UserProfile: { userId?: string };
   HomeChat: { chatId: string; otherUserId: string; otherUserName?: string };
+  SessionRequest: { 
+    otherUserId: string; 
+    skillId: string; 
+    skillName: string; 
+    isTeaching: boolean; 
+  };
 };
 
 export type MatchesStackParamList = {
   MatchesMain: undefined;
   MatchUserProfile: { userId?: string };
   MatchChat: { chatId: string; otherUserId: string; otherUserName?: string };
+  SessionRequest: { 
+    otherUserId: string; 
+    skillId: string; 
+    skillName: string; 
+    isTeaching: boolean; 
+  };
 };
 
 export type MessagesStackParamList = {
@@ -191,11 +203,23 @@ export type ProfileStackParamList = {
   AddSkill: { type: 'teach' | 'learn' };
   Followers: { userId: string };
   Following: { userId: string };
+  SessionRequest: { 
+    otherUserId: string; 
+    skillId: string; 
+    skillName: string; 
+    isTeaching: boolean; 
+  };
 };
 
 export type CalendarStackParamList = {
   CalendarMain: undefined;
   SessionDetails: { sessionId: string };
+  SessionRequest: { 
+    otherUserId: string; 
+    skillId: string; 
+    skillName: string; 
+    isTeaching: boolean; 
+  };
 };
 
 // API Response types

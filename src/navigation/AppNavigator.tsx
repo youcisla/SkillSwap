@@ -13,6 +13,7 @@ import SystemSettingsScreen from '../screens/admin/SystemSettingsScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
+import SessionRequestScreen from '../screens/sessions/SessionRequestScreen';
 import AddSkillScreen from '../screens/skills/AddSkillScreen';
 import SkillManagementScreen from '../screens/skills/SkillManagementScreen';
 import OptimizedMainTabNavigator from './OptimizedMainTabNavigator';
@@ -109,6 +110,14 @@ const AppNavigator: React.FC = () => {
               options={{ 
                 headerShown: true,
                 title: 'System Settings'
+              }}
+            />
+            <Stack.Screen 
+              name="SessionRequest" 
+              component={SessionRequestScreen}
+              options={{ 
+                headerShown: true,
+                title: 'Request Session'
               }}
             />
           </>

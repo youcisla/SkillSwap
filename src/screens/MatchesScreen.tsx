@@ -1,21 +1,21 @@
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  View,
+    Alert,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    View,
 } from 'react-native';
 import {
-  Button,
-  Card,
-  Chip,
-  FAB,
-  Paragraph,
-  Searchbar,
-  Text,
-  Title
+    Button,
+    Card,
+    Chip,
+    FAB,
+    Paragraph,
+    Searchbar,
+    Text,
+    Title
 } from 'react-native-paper';
 import SafeAvatar from '../components/SafeAvatar';
 import { BulkActionsBar, SelectableItem, SelectionHeader } from '../components/ui/MultiSelection';
@@ -47,7 +47,10 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
 
   // Multi-selection hook
   const matchSelection = useMultiSelection<Match>(
-    (match) => match.id,
+    (match) => {
+      const matchWithId = match as any;
+      return matchWithId.id || matchWithId._id || `temp-${Date.now()}`;
+    },
     { allowSelectAll: true }
   );
 
@@ -492,13 +495,16 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.skillsSection}>
             <Text style={styles.skillsTitle}>Shared Skills</Text>
             <View style={styles.skillsContainer}>
-              {safeMatchedSkills.slice(0, 3).map((skill, index) => (
-                <Chip key={`${skill}-${index}`} style={styles.skillChip}>
-                  <Text>{String(skill)}</Text>
-                </Chip>
-              ))}
+              {safeMatchedSkills.slice(0, 3).map((skill, index) => {
+                const matchId = (item as any).id || (item as any)._id || `${(item as any).user1Id}-${(item as any).user2Id}`;
+                return (
+                  <Chip key={`skill-${matchId}-${skill}-${index}`} style={styles.skillChip}>
+                    {String(skill)}
+                  </Chip>
+                );
+              })}
               {safeMatchedSkills.length > 3 && (
-                <Text style={styles.moreSkills}>
+                <Text key={`more-skills-${(item as any).id || (item as any)._id || 'fallback'}`} style={styles.moreSkills}>
                   +{safeMatchedSkills.length - 3} more
                 </Text>
               )}
@@ -552,7 +558,18 @@ const MatchesScreen: React.FC<Props> = ({ navigation }) => {
     return matchContent;
   }, [isSelectionMode, matchSelection, user?.id, navigation]);
 
-  const keyExtractor = useCallback((item: Match) => item.id, []);
+  const keyExtractor = useCallback((item: Match) => {
+    // Handle both id and _id for compatibility with backend
+    const itemWithId = item as any;
+    const matchId = itemWithId.id || itemWithId._id;
+    if (matchId) {
+      return String(matchId);
+    }
+    // Fallback: create a stable key from user IDs
+    const user1 = typeof itemWithId.user1Id === 'object' ? itemWithId.user1Id?.id || itemWithId.user1Id?._id : itemWithId.user1Id;
+    const user2 = typeof itemWithId.user2Id === 'object' ? itemWithId.user2Id?.id || itemWithId.user2Id?._id : itemWithId.user2Id;
+    return `match-${user1}-${user2}`;
+  }, []);
 
   if (loading && matches.length === 0) {
     return (

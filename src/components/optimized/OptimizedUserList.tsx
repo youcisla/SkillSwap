@@ -108,7 +108,7 @@ const UserCard = memo<{
         {skillsPreview.length > 0 && (
           <View style={styles.skillsContainer}>
             {skillsPreview.map((skill, index) => (
-              <View key={`${skill?.id}-${index}`} style={[styles.skillChip, { backgroundColor: theme.colors.surfaceVariant }]}>
+              <View key={`${skill?.id || skill?.name}-${user.id}-${index}`} style={[styles.skillChip, { backgroundColor: theme.colors.surfaceVariant }]}>
                 <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
                   {skill?.name || 'Unknown Skill'}
                 </Text>

@@ -117,7 +117,7 @@ const MatchCard = memo<{
             <View style={styles.skillsContainer}>
               {skillsToShow.map((skill, index) => (
                 <Chip
-                  key={`${skill}-${index}`}
+                  key={`${skill}-${match.id || `${match.user1Id}-${match.user2Id}`}-${index}`}
                   compact
                   style={[styles.skillChip, { backgroundColor: theme.colors.primaryContainer }]}
                   textStyle={{ color: theme.colors.onPrimaryContainer }}

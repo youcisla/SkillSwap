@@ -104,7 +104,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
       currentUserId: user?.id || null
     }),
     {
-      enabled: !!user?.id && user.id.length > 0, // Add validation
+      enabled: !!user?.id && typeof user.id === 'string' && user.id.trim().length > 0, // Enhanced validation
       staleTime: 5 * 60 * 1000, // 5 minutes
       cacheTime: 10 * 60 * 1000, // 10 minutes
     }
@@ -112,14 +112,14 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
 
   // Load users when debounced search query or filter changes
   useEffect(() => {
-    if (currentUser && user?.id && user.id.length > 0) {
+    if (currentUser && user?.id && typeof user.id === 'string' && user.id.trim().length > 0) {
       loadUsers();
     }
   }, [debouncedSearchQuery, filterType, currentUser?.id, user?.id]);
 
   const loadUsers = useCallback(async () => {
-    if (!user?.id || user.id.length === 0) {
-      console.warn('Invalid user ID, skipping user search');
+    if (!user?.id || typeof user.id !== 'string' || user.id.trim().length === 0) {
+      console.warn('Invalid user ID, skipping user search:', user?.id);
       return;
     }
     
@@ -310,7 +310,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
                 <View style={styles.skillsContainer}>
                   {userProfile.skillsToTeach.slice(0, 2).map((skill, index) => (
                     <Chip 
-                      key={skill?.id || `teach-skill-${index}`} 
+                      key={skill?.id || skill?.name || `teach-skill-${userProfile.id}-${index}`} 
                       style={[styles.teachChip, { backgroundColor: colors.success.light }]}
                       textStyle={{ color: colors.success.dark }}
                       compact
@@ -395,7 +395,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
               <View style={styles.skillsContainer}>
                 {userProfile.skillsToTeach.slice(0, 3).map((skill, index) => (
                   <Chip 
-                    key={skill?.id || `teach-skill-${index}`} 
+                    key={skill?.id || skill?.name || `teach-skill-${userProfile.id}-${index}`} 
                     style={[styles.teachChip, { backgroundColor: colors.success.light }]}
                     textStyle={{ color: colors.success.dark }}
                     compact
@@ -421,7 +421,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
               <View style={styles.skillsContainer}>
                 {userProfile.skillsToLearn.slice(0, 3).map((skill, index) => (
                   <Chip 
-                    key={skill?.id || `learn-skill-${index}`} 
+                    key={skill?.id || skill?.name || `learn-skill-${userProfile.id}-${index}`} 
                     style={[styles.learnChip, { backgroundColor: colors.primary.light }]}
                     textStyle={{ color: colors.primary.dark }}
                     compact
@@ -448,7 +448,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
               }}
               variant={isFollowing[userProfile.id] ? "outline" : "secondary"}
               size="small"
-              icon={<IconButton icon={isFollowing[userProfile.id] ? "account-check" : "account-plus"} size={16} />}
+              icon={isFollowing[userProfile.id] ? "account-check" : "account-plus"}
               style={styles.actionButton}
             />
             <EnhancedButton
@@ -464,7 +464,7 @@ const UserListScreen: React.FC<Props> = ({ navigation, route }) => {
               }}
               variant="primary"
               size="small"
-              icon={<IconButton icon="message" size={16} />}
+              icon="message"
               style={styles.actionButton}
             />
           </View>

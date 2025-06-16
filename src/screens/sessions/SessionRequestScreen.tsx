@@ -2,20 +2,20 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useState } from 'react';
 import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  View
+    Alert,
+    ScrollView,
+    StyleSheet,
+    View
 } from 'react-native';
 import {
-  Button,
-  Card,
-  Divider,
-  HelperText,
-  Text,
-  TextInput,
-  Title,
-  useTheme,
+    Button,
+    Card,
+    Divider,
+    HelperText,
+    Text,
+    TextInput,
+    Title,
+    useTheme,
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { createSession } from '../../store/slices/sessionSlice';
@@ -37,9 +37,12 @@ const SessionRequestScreen: React.FC<Props> = ({ navigation, route }) => {
   
   const { otherUserId, skillId, skillName, isTeaching } = route.params;
   
-  const [date, setDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
+  // Set default date to tomorrow at 10 AM (immutable)
+  const defaultDate = new Date();
+  defaultDate.setDate(defaultDate.getDate() + 1);
+  defaultDate.setHours(10, 0, 0, 0);
+  
+  const [date] = useState(defaultDate); // Removed setDate since it's immutable
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -47,9 +50,7 @@ const SessionRequestScreen: React.FC<Props> = ({ navigation, route }) => {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     
-    if (date <= new Date()) {
-      newErrors.date = 'Please select a future date and time';
-    }
+    // Date validation removed since it's preset to tomorrow
     
     if (!location.trim()) {
       newErrors.location = 'Location is required';
@@ -99,23 +100,6 @@ const SessionRequestScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      setDate(selectedDate);
-    }
-  };
-
-  const onTimeChange = (event: any, selectedTime?: Date) => {
-    setShowTimePicker(false);
-    if (selectedTime) {
-      const newDate = new Date(date);
-      newDate.setHours(selectedTime.getHours());
-      newDate.setMinutes(selectedTime.getMinutes());
-      setDate(newDate);
-    }
-  };
-
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
@@ -135,28 +119,19 @@ const SessionRequestScreen: React.FC<Props> = ({ navigation, route }) => {
           <Card.Content>
             <Title style={styles.sectionTitle}>Session Details</Title>
             
-            {/* Date Selection */}
-            <Text style={styles.label}>Date</Text>
-            <Button
-              mode="outlined"
-              onPress={() => setShowDatePicker(true)}
-              style={styles.dateButton}
-              contentStyle={styles.dateButtonContent}
-            >
-              {date.toLocaleDateString()}
-            </Button>
-            {errors.date && <HelperText type="error">{errors.date}</HelperText>}
+            {/* Date Display (Immutable) */}
+            <Text style={styles.label}>Scheduled Date</Text>
+            <View style={styles.dateDisplay}>
+              <Text style={styles.dateText}>{date.toLocaleDateString()}</Text>
+            </View>
+            <HelperText type="info">Session date is set to tomorrow for convenience</HelperText>
 
-            {/* Time Selection */}
-            <Text style={styles.label}>Time</Text>
-            <Button
-              mode="outlined"
-              onPress={() => setShowTimePicker(true)}
-              style={styles.dateButton}
-              contentStyle={styles.dateButtonContent}
-            >
-              {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </Button>
+            {/* Time Display (Immutable) */}
+            <Text style={styles.label}>Scheduled Time</Text>
+            <View style={styles.dateDisplay}>
+              <Text style={styles.dateText}>{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+            </View>
+            <HelperText type="info">Default time can be adjusted after session is accepted</HelperText>
 
             <Divider style={styles.divider} />
 
@@ -224,18 +199,7 @@ const SessionRequestScreen: React.FC<Props> = ({ navigation, route }) => {
           </Button>
         </View>
 
-        {/* Date Picker Modals */}
-        {showDatePicker && (
-          <Text style={styles.pickerPlaceholder}>
-            Date picker component would go here
-          </Text>
-        )}
-
-        {showTimePicker && (
-          <Text style={styles.pickerPlaceholder}>
-            Time picker component would go here
-          </Text>
-        )}
+        {/* Date Picker Modals - Removed since date is now immutable */}
       </View>
     </ScrollView>
   );
@@ -316,6 +280,20 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
     padding: 16,
+  },
+  dateDisplay: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  dateText: {
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+    color: '#333',
   },
 });
 
