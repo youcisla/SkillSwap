@@ -36,47 +36,83 @@ router.post('/', auth, async (req, res) => {
       });
     }
 
-    // Check if already following
-    const existingFollow = await Follow.findOne({ 
+    // Check if already following (including inactive follows)
+    let follow = await Follow.findOne({ 
       followerId, 
-      followingId, 
-      isActive: true 
-    });
-
-    if (existingFollow) {
-      return res.status(400).json({
-        success: false,
-        error: 'Already following this user'
-      });
-    }
-
-    // Create follow relationship
-    const follow = new Follow({
-      followerId,
       followingId
     });
 
-    await follow.save();
+    let isNewFollow = false;
 
-    // Update follower counts
-    await Promise.all([
-      User.findByIdAndUpdate(followerId, { 
-        $inc: { followingCount: 1 } 
-      }),
-      User.findByIdAndUpdate(followingId, { 
-        $inc: { followersCount: 1 } 
-      })
-    ]);
+    if (follow) {
+      if (follow.isActive) {
+        return res.status(400).json({
+          success: false,
+          error: 'Already following this user'
+        });
+      } else {
+        // Reactivate existing follow
+        follow.isActive = true;
+        follow.createdAt = new Date();
+        await follow.save();
+        isNewFollow = true;
+      }
+    } else {
+      // Create new follow relationship
+      try {
+        follow = new Follow({
+          followerId,
+          followingId
+        });
+        await follow.save();
+        isNewFollow = true;
+      } catch (error) {
+        // Handle duplicate key error gracefully
+        if (error.code === 11000) {
+          // Race condition - another request already created the follow
+          follow = await Follow.findOne({ followerId, followingId });
+          if (follow && follow.isActive) {
+            return res.status(400).json({
+              success: false,
+              error: 'Already following this user'
+            });
+          }
+          // If follow exists but is inactive, activate it
+          if (follow && !follow.isActive) {
+            follow.isActive = true;
+            follow.createdAt = new Date();
+            await follow.save();
+            isNewFollow = true;
+          }
+        } else {
+          throw error;
+        }
+      }
+    }
 
-    // Get follower info for notification
-    const follower = await User.findById(followerId).select('name');
-    
-    // Emit real-time notification to the followed user
-    if (follower) {
-      emitNewFollower(followingId, {
-        followerId,
-        followerName: follower.name
-      });
+    // Update follower counts only for new follows
+    if (isNewFollow) {
+      await Promise.all([
+        User.findByIdAndUpdate(followerId, { 
+          $inc: { followingCount: 1 } 
+        }),
+        User.findByIdAndUpdate(followingId, { 
+          $inc: { followersCount: 1 } 
+        })
+      ]);
+    }
+
+    // Get follower info for notification (only for new follows)
+    if (isNewFollow) {
+      const follower = await User.findById(followerId).select('name');
+      
+      // Emit real-time notification to the followed user
+      if (follower) {
+        emitNewFollower(followingId, {
+          followerId,
+          followerName: follower.name
+        });
+      }
     }
 
     res.status(201).json({
